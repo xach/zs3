@@ -1,0 +1,2559 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel='stylesheet' type='text/css' href='style.css'>
+    <title>ZS3 - Amazon S3 and CloudFront from Common Lisp</title>
+    </head>
+  <body>
+
+<div id='content'>
+ <h2>ZS3 - Amazon S3 and CloudFront from Common Lisp</h2>
+
+ <p>ZS3 is a Common Lisp library for working with
+   Amazon's <a href="http://aws.amazon.com/s3/">Simple Storage
+   Service</a> (S3)
+   and <a href="http://aws.amazon.com/cloudfront/">CloudFront content
+   delivery service</a>. It is available under a BSD-style license;
+   see <a href='LICENSE'>LICENSE</a> for details. The latest version
+   is 1.1.4, released on September 16, 2010.
+
+ <p>Download shortcut: <a href='http://www.xach.com/lisp/zs3.tgz'>http://www.xach.com/lisp/zs3.tgz</a>
+
+ <h2>Contents</h2>
+
+ <ul>
+   <li> <a href='#installation'>Installation</a>
+   <li> <a href='#overview'>Overview</a>
+   <li> <a href='#example'>Example Use</a>
+   <li> <a href='#limitations'>Limitations</a>
+   <li> <a href='#dictionary'>The ZS3 Dictionary</a>
+     <ul>
+       <li> <a href='#credentials'>Credentials</a>
+       <li> <a href='#bucket-ops'>Operations on Buckets</a>
+       <li> <a href='#querying-buckets'>Querying Buckets</a>
+       <li> <a href='#object-ops'>Operations on Objects</a>
+       <li> <a href='#access-control'>Access Control</a>
+       <li> <a href='#access-logging'>Access Logging</a>
+       <li> <a href='#misc'>Miscellaneous Operations</a>
+       <li> <a href='#utility'>Utility Functions</a>
+       <li> <a href='#cloudfront'>CloudFront</a>
+     </ul>
+   <li> <a href='#references'>References</a>
+   <li> <a href='#acknowledgements'>Acknowledgements</a>
+   <li> <a href='#feedback'>Feedback</a>
+ </ul>
+
+ <a name='installation'><h2>Installation</h2></a>
+
+ <p>ZS3 depends on the following libraries:
+
+   <ul>
+     <li> <a href="http://common-lisp.net/project/cxml/">Closure XML</a> (<a href='http://cliki.net/cxml?download'>download</a>) 
+     <li> <a href="http://weitz.de/drakma/">Drakma</a> <b>1.0.0 or newer</b> (<a href='http://cliki.net/Drakma?download'>download</a>)
+     <li> <a href="http://method-combination.net/lisp/ironclad/">Ironclad</a> (<a href='http://cliki.net/ironclad?download'>download</a>)
+     <li> <a href="http://files.b9.com/cl-base64/">cl-base64</a> (<a href='http://cliki.net/cl-base64?download'>download</a>)
+     <li> <a href="http://puri.b9.com/">Puri</a> (<a href='http://cliki.net/puri?download'>download</a>)
+   </ul>
+
+ <p>Those libraries additionally depend on:
+   <ul>
+     <li> <a href="http://common-lisp.net/project/alexandria/">Alexandria</a> (<a href='http://cliki.net/alexandria?download'>download</a>)
+     <li> <a href="http://common-lisp.net/project/babel/">Babel</a> (<a href='http://cliki.net/babel?download'>download</a>)
+     <li> <a href="http://common-lisp.net/project/cffi/">CFFI</a> (<a href='http://cliki.net/cffi?download'>download</a>)
+     <li> <a href="http://weitz.de/chunga/">Chunga</a> (<a href='http://cliki.net/chunga?download'>download</a>)
+     <li> <a href="http://common-lisp.net/project/cl-plus-ssl/">CL+SSL</a> (<a href='http://cliki.net/cl+ssl?download'>download</a>)
+     <li> <a href="http://www.cliki.net/closure-common">closure-common</a> (<a href='http://cliki.net/closure-common?download'>download</a>)
+     <li> <a href="http://weitz.de/flexi-streams/">FLEXI-STREAMS</a> (<a href='http://cliki.net/flexi-streams?download'>download</a>)
+     <li> <a href="http://www.cliki.net/trivial-features">trivial-features</a> (<a href='http://cliki.net/trivial-features?download'>download</a>)
+     <li> <a href="http://www.cliki.net/trivial-gray-streams">trivial-gray-streams</a> (<a href='http://cliki.net/trivial-gray-streams?download'>download</a>)
+     <li> <a href="http://www.cliki.net/usocket">usocket</a> (<a href='http://cliki.net/usocket?download'>download</a>)
+   </ul>
+
+ <p>If you
+   have <a href="http://cliki.net/asdf-install">asdf-install</a>, you
+   can use <code>(asdf-install:install 'zs3)</code>, which will fetch
+   and load all the dependencies listed above.
+
+ <p>For more information about incorporating ASDF-using libraries like
+   ZS3 into your own projects,
+   see <a href="http://xach.livejournal.com/130040.html">this short
+   tutorial</a>.
+   
+
+<a name='overview'><h2>Overview</h2></a>
+
+ <p>ZS3 provides an interface to two separate, but related, Amazon
+ services: <a href="http://aws.amazon.com/s3/">S3</a>
+ and <a href="http://aws.amazon.com/cloudfront/">CloudFront</a>
+
+ <p>Using Amazon S3 involves working with two kinds of resources:
+ buckets and objects.
+
+ <p>Buckets are containers, and are used to organize and manage
+   objects. Buckets are identified by their name, which must be unique
+   across all of S3. A user may have up to 100 buckets in S3.
+
+ <p>Objects are stored within buckets. Objects consist of arbitrary
+   binary data, from 1 byte to 5 gigabytes. They are identified by a
+   key, which must be unique within a bucket. Objects can also have
+   associated S3-specific metadata and HTTP metadata.
+
+ <p>For full documentation of the Amazon S3 system, see
+   the <a href="http://developer.amazonwebservices.com/connect/entry.jspa?externalID=123&categoryID=48">Amazon
+   S3 Technical Documentation</a>. ZS3 uses the REST
+   interface for all its operations.
+
+ <p>Using Amazon CloudFront involves working with
+   distributions. Distributions are objects that associate an S3
+   bucket with primary cloudfront.net hostname and zero or more
+   arbitrary CNAMEs. S3 objects requested through a CloudFront
+   distribution are distributed to and cached in multiple locations
+   throughout the world, reducing latency and improving throughput,
+   compared to direct S3 requests.
+
+ <p>For full documentation of the Amazon CloudFront system, see the
+   <a href="http://developer.amazonwebservices.com/connect/entry.jspa?externalID=1876&categoryID=213">Amazon
+   CloudFront Technical Documentation</a>.
+
+ <p>For help with using ZS3, please see
+ the <a href="http://groups.google.com/group/zs3-devel">zs3-devel</a>
+ mailing list.
+   
+<a name='example'><h2>Example Use</h2></a>
+
+<p>
+<pre class='code'>
+  * <b>(asdf:oos 'asdf:load-op '#:zs3)</b>
+  => <i>lots of stuff</i>
+
+  * <b>(defpackage #:demo (:use #:cl #:zs3))</b>
+  => #&lt;PACKAGE "DEMO"&gt;
+
+  * <b>(in-package #:demo)</b>
+  => #&lt;PACKAGE "DEMO"&gt;
+
+  * <b>(setf <a href='#*credentials*'>*credentials*</a> (<a href='#file-credentials'>file-credentials</a> "~/.aws"))</b>
+  => #&lt;FILE-CREDENTIALS {100482AF91}>
+
+  * <b>(<a href='#bucket-exists-p'>bucket-exists-p</a> "zs3-demo")</b>
+  => NIL
+
+  * <b>(<a href='#create-bucket'>create-bucket</a> "zs3-demo")</b>
+  => #&lt;RESPONSE 200 "OK" {10040D3281}>
+
+  * <b>(<a href='#put-vector'>put-vector</a> (<a href='#octet-vector'>octet-vector</a> 8 6 7 5 3 0 9 ) "zs3-demo" "jenny")</b>
+  => #&lt;RESPONSE 200 "OK" {10033EC2E1}>
+
+  * <b>(create-bucket "zs3 demo")</b>
+  Error:
+   InvalidBucketName: The specified bucket is not valid.
+   For more information, see:
+     <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/BucketRestrictions.html">http://docs.amazonwebservices.com/AmazonS3/2006-03-01/BucketRestrictions.html</a>
+  [Condition of type INVALID-BUCKET-NAME]
+
+  * <b>(<a href='#copy-object'>copy-object</a> :from-bucket "zs3-demo" :from-key "jenny" :to-key "j2")</b>
+  => #&lt;RESPONSE 200 "OK" {10040E3EA1}>
+
+  * <b>(<a href='#get-vector'>get-vector</a> "zs3-demo" "j2")</b>
+  => #(8 6 7 5 3 0 9),
+     ((:X-AMZ-ID-2 . "Huwo...")
+      (:X-AMZ-REQUEST-ID . "304...")
+      (:DATE . "Sat, 27 Sep 2008 15:01:03 GMT")
+      (:LAST-MODIFIED . "Sat, 27 Sep 2008 14:57:31 GMT")
+      (:ETAG . "\"f9e71fe2c41a10c0a78218e98a025520\"")
+      (:CONTENT-TYPE . "binary/octet-stream")
+      (:CONTENT-LENGTH . "7")
+      (:CONNECTION . "close")
+      (:SERVER . "AmazonS3"))     
+
+  * <b>(<a href='#put-string'>put-string</a> "N&auml;men" "zs3-demo" "bork")</b>
+  => #&lt;RESPONSE 200 "OK" {10047A3791}>
+
+  * <b>(values (get-vector "zs3-demo" "bork"))</b>
+  => #(78 195 164 109 101 110)
+
+  * <b>(values (<a href='#get-file'>get-file</a> "zs3-demo" "bork" "bork.txt"))</b>
+  => #P"bork.txt"
+
+  * <b>(setf *distribution* (<a href='#create-distribution'>create-distribution</a> "zs3-demo" :cnames "cdn.wigflip.com")</b>
+  => #&lt;DISTRIBUTION X2S94L4KLZK5G0 for "zs3-demo.s3.amazonaws.com" [InProgress]>
+
+  * <b>(progn (sleep 180) (<a href='#refresh'>refresh</a> *distribution*))</b>
+  => #&lt;DISTRIBUTION X2S94L4KLZK5G0 for "zs3-demo.s3.amazonaws.com" [Deployed]>
+
+  * <b>(<a href='#domain-name'>domain-name</a> *distribution*)</b>
+  => "x214g1hzpjm1zp.cloudfront.net"
+
+  * <b>(<a href='#cnames'>cnames</a> *distribution*)</b>
+  => ("cdn.wigflip.com")
+
+  * <b>(put-string "Hello, world" "zs3-demo" "cloudfront" :public t)</b>
+  #&lt;RESPONSE 200 "OK" {10042689F1}>
+
+  * <b>(drakma:http-request "http://x214g1hzpjm1zp.cloudfront.net/cloudfront")</b>
+  "Hello, world"
+  200
+  ((:X-AMZ-ID-2 . "NMc3IY3NzHGGEvV/KlzPgZMyDfPVT+ITtHo47Alqg00MboTxSX2f5XJzVTErfuHr")
+   (:X-AMZ-REQUEST-ID . "52B050DC18638A00")
+   (:DATE . "Thu, 05 Mar 2009 16:24:25 GMT")
+   (:LAST-MODIFIED . "Thu, 05 Mar 2009 16:24:10 GMT")
+   (:ETAG . "\"bc6e6f16b8a077ef5fbc8d59d0b931b9\"")
+   (:CONTENT-TYPE . "text/plain")
+   (:CONTENT-LENGTH . "12")
+   (:SERVER . "AmazonS3")
+   (:X-CACHE . "Miss from cloudfront")
+   (:VIA . "1.0 ad78cb56da368c171e069e4444b2cbf6.cloudfront.net:11180")
+   (:CONNECTION . "close"))
+  #&lt;PURI:URI http://x214g1hzpjm1zp.cloudfront.net/cloudfront>
+  #&lt;FLEXI-STREAMS:FLEXI-IO-STREAM {1002CE0781}>
+  T
+  "OK"     
+
+  * <b>(drakma:http-request "http://x214g1hzpjm1zp.cloudfront.net/cloudfront")</b>
+  "Hello, world"
+  200
+  ((:X-AMZ-ID-2 . "NMc3IY3NzHGGEvV/KlzPgZMyDfPVT+ITtHo47Alqg00MboTxSX2f5XJzVTErfuHr")
+   (:X-AMZ-REQUEST-ID . "52B050DC18638A00")
+   (:DATE . "Thu, 05 Mar 2009 16:24:25 GMT")
+   (:LAST-MODIFIED . "Thu, 05 Mar 2009 16:24:10 GMT")
+   (:ETAG . "\"bc6e6f16b8a077ef5fbc8d59d0b931b9\"")
+   (:CONTENT-TYPE . "text/plain")
+   (:CONTENT-LENGTH . "12")
+   (:SERVER . "AmazonS3")
+   (:AGE . "311")
+   (:X-CACHE . "Hit from cloudfront")
+   (:VIA . "1.0 0d78cb56da368c171e069e4444b2cbf6.cloudfront.net:11180")
+   (:CONNECTION . "close"))
+  #&lt;PURI:URI http://x214g1hzpjm1zp.cloudfront.net/cloudfront>
+  #&lt;FLEXI-STREAMS:FLEXI-IO-STREAM {100360A781}>
+  T
+  "OK"     
+
+</pre>
+
+
+<a name='limitations'><h2>Limitations</h2></a>
+
+<p>ZS3 supports almost all of the features of Amazon's S3 REST
+interface. Some features are unsupported or incompletely supported:
+
+  <ul>
+    <li> No direct support
+    for <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/UsingDevPay.html">Amazon
+    DevPay</a>
+
+    <li> No support for checking the 100-Continue response to avoid
+    unnecessary large requests; this will hopefully be fixed with a
+    future <a href='http://weitz.de/drakma/'>Drakma</a> release
+
+    <li> If a character in a key is encoded with multiple bytes in
+      UTF-8, a bad interaction
+      between <a href="http://puri.b9.com/">PURI</a> and Amazon's web
+      servers will trigger a validation error.
+
+  </ul>
+
+<a name='dictionary'><h2>The ZS3 Dictionary</h2></a>
+
+<p>The following sections document the symbols that are exported from
+ZS3.
+  
+
+ <a name='credentials'><h3>Credentials</h3></a>
+
+<p>
+
+<div class='item'>
+  <div class='type'><a name='*credentials*'>[Special variable]</a></div>
+  <div class='signature'>
+    <code class='name'>*credentials*</code>
+  </div>
+
+  <blockquote class='description'>
+    <p><code>*CREDENTIALS*</code> is the source of the Amazon Access
+    Key and Secret Key for authenticated requests. Any object that has
+    methods for the <a href='#access-key'><tt>ACCESS-KEY</tt></a>
+    and <a href='#secret-key'><tt>SECRET-KEY</tt></a> generic
+    functions may be used.
+
+    <p>If <code>*CREDENTIALS*</code> is a cons, it is treated as a
+      list, and the first element of the list is taken as the access
+      key and the second element of the list is taken as the secret
+      key.
+
+    <p>The default value of <code>*CREDENTIALS*</code> is NIL, which
+      will signal an error. You must set <code>*CREDENTIALS*</code> to
+      something that follows the credentials generic function protocol
+      to use ZS3.
+
+    <p>All ZS3 functions that involve authenticated requests take an
+    optional <code class='kw'>:CREDENTIALS</code> keyword
+    parameter. This parameter is bound to <code>*CREDENTIALS*</code>
+    for the duration of the function call.
+
+    <p>The following illustrates how to implement a credentials object
+      that gets the access and secret key from external environment
+      variables.
+
+<pre class='code'>
+  (defclass environment-credentials () ())
+
+  (defmethod access-key ((credentials environment-credentials))
+    (declare (ignore credentials))
+    (getenv "AWS_ACCESS_KEY"))
+
+  (defmethod secret-key ((credentials environment-credentials))
+    (declare (ignore credentials))
+    (getenv "AWS_SECRET_KEY"))
+
+  (setf *credentials* (make-instance 'environment-credentials))
+</pre>
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='access-key'>[Generic function]</a></div>
+  <div class='signature'>
+    <code class='name'>access-key</code>
+    <span class='args'>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>access-key-string</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the access key for <var>credentials</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='secret-key'>[Generic function]</a></div>
+  <div class='signature'>
+    <code class='name'>secret-key</code>
+    <span class='args'>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>secret-key-string</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the secret key for <var>credentials</var>.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='file-credentials'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>file-credentials</code>
+    <span class='args'>
+      <var>pathname</var>
+    </span>
+    <span class='result'>=> <var>credentials</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Loads credentials on demand from <var>pathname</var>. The file
+      named by <var>pathname</var> should be a text file with the
+      access key on the first line and the secret key on the second
+      line.
+
+    <p>It can be used like so:
+
+<pre class='code'>
+  (setf *credentials* (file-credentials "/etc/s3.conf"))
+</pre>
+  </blockquote>
+</div>
+
+
+
+ <a name='bucket-ops'><h3>Operations on Buckets</h3></a>
+
+ <p>With ZS3, you can put, get, copy, and delete buckets. You can also
+ get information about the bucket.
+
+<div class='item'>
+  <div class='type'><a name='all-buckets'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>all-buckets</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code> <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>bucket-vector</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a vector of all bucket objects. Bucket object
+    attributes are accessible via <a href='#name'><tt>NAME</tt></a>
+    and <a href='#creation-date'><tt>CREATION-DATE</tt></a>.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='creation-date'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>creation-date</code>
+    <span class='args'>
+      <var>bucket-object</var>
+    </span>
+    <span class='result'>=> <var>creation-universal-time</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the creation date of <var>bucket-object</var>, which
+      must be a bucket object, as a universal time.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='name'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>name</code>
+    <span class='args'>
+      <var>object</var>
+    </span>
+    <span class='result'>=> <var>name-string</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the string name of <var>object</var>, which must be a
+      key object or bucket object.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='all-keys'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>all-keys</code>
+    <span class='args'>
+      <var>bucket</var>
+      <code class='llkw'>&amp;key</code>
+      <var>prefix</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>key-vector</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a vector of all key objects in <var>bucket</var> with names
+    that start with the string <var>prefix</var>. If no prefix is
+    specified, returns all keys. Keys in the vector are in
+    alphabetical order by name. Key
+    object attributes are accessible via
+      <a href='#name'><tt>NAME</tt></a>,
+      <a href='#size'><tt>SIZE</tt></a>,
+      <a href='#etag'><tt>ETAG</tt></a>,
+      <a href='#last-modified'><tt>LAST-MODIFIED</tt></a>,
+      and <a href='#owner'><tt>OWNER</tt></a>.
+
+    <p>This function is built
+      on <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a> and may
+      involve multiple requests if a bucket has more than 1000 keys.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='bucket-exists-p'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>bucket-exists-p</code>
+    <span class='args'>
+      <var>bucket</var>
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>boolean</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns <i>true</i> if <var>bucket</var> exists.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='create-bucket'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>create-bucket</code>
+    <span class='args'>
+      <var>name</var>
+      <code class='llkw'>&amp;key</code>
+      <var>access-policy</var>
+      <var>public</var>
+      <var>location</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Creates a bucket named <var>name</var>.
+
+    <p>If provided, <var>access-policy</var> should be one of the
+    following:
+
+      <ul> 
+	<li> <code class='kw'>:PRIVATE</code> - bucket owner is
+	  granted <code class='kw'>:FULL-CONTROL</code>; this is the
+	  default behavior if no access policy is provided
+	<li> <code class='kw'>:PUBLIC-READ</code> - all users,
+	  regardless of authentication, can query the bucket's contents
+	<li> <code class='kw'>:PUBLIC-READ-WRITE</code> - all users,
+	  regardless of authentication, can query the bucket's
+	  contents and create new objects in the bucket
+	<li> <code class='kw'>:AUTHENTICATED-READ</code> -
+	  authenticated Amazon AWS users can query the bucket
+      </ul>
+
+    <p>For more information about access policies,
+    see <a href='http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTAccessPolicy.html'>Canned
+    Access Policies</a> in the Amazon S3 developer documentation.
+
+    <p>If <var>public</var> is <i>true</i>, it has the same effect as
+      providing an <var>access-policy</var>
+      of <code class='kw'>:PUBLIC-READ</code>. An error is signaled if
+      both <var>public</var> and
+      <var>access-policy</var> are provided.
+
+    <p>If <var>location</var> is "EU", the bucket will be created in
+      Europe. See <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/BucketConfiguration.html">Bucket
+      Configuration Options</a> in the Amazon S3 developer
+      documentation for more information about location constraints.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='delete-bucket'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>delete-bucket</code>
+    <span class='args'>
+      <var>bucket</var> <code class='llkw'>&amp;key</code> <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Deletes <var>bucket</var>. Signals a BUCKET-NOT-EMPTY error if
+the bucket is not empty, or a NO-SUCH-BUCKET error if there is no
+bucket with the given name.
+
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='bucket-location'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>bucket-location</code>
+    <span class='args'>
+      <var>bucket</var> <code class='llkw'>&amp;key</code> <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>location</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the location specified when creating a bucket, or NIL if no
+      location was specified.
+  </blockquote>
+</div>
+
+
+<a name='querying-buckets'><h3>Querying Buckets</h3></a>
+
+<p>S3 has a flexible interface for querying a bucket for information
+  about its contents. ZS3 supports this interface via
+  <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a>,
+   <a href='#continue-bucket-query'><tt>CONTINUE-BUCKET-QUERY</tt></a>,
+   and related functions.
+
+<div class='item'>
+  <div class='type'><a name='query-bucket'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>query-bucket</code>
+    <span class='args'>
+      <var>bucket</var>
+      <code class='llkw'>&amp;key</code>
+      <var>prefix</var>
+      <var>marker</var>
+      <var>max-keys</var>
+      <var>delimiter</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>response</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Query <var>bucket</var> for key information. Returns a response
+    object that has the result of the query. Response attributes are
+    accessible via
+      <a href='#bucket-name'><tt>BUCKET-NAME</tt></a>,
+      <a href='#prefix'><tt>PREFIX</tt></a>,
+      <a href='#marker'><tt>MARKER</tt></a>,
+      <a href='#delimiter'><tt>DELIMITER</tt></a>,
+      <a href='#truncatedp'><tt>TRUNCATEDP</tt></a>,
+      <a href='#keys'><tt>KEYS</tt></a>, and
+      <a href='#common-prefixes'><tt>COMMON-PREFIXES</tt></a>.
+
+    <p>Amazon might return fewer key objects than actually match the
+      query parameters, based on <var>max-keys</var> or the result
+      limit of 1000 key objects. In that
+      case, <a href='#truncatedp'><tt>TRUNCATEDP</tt></a>
+      for <var>response</var> is <i>true</i>, and
+      <a href='#continue-bucket-query'><tt>CONTINUE-BUCKET-QUERY</tt></a>
+      can be used with <var>response</var> be used to get successive
+      responses for the query parameters.
+
+    <p>When <var>prefix</var> is supplied, only key objects with names
+      that start with <var>prefix</var> will be returned
+      in <var>response</var>.
+
+    <p>When <var>marker</var> is supplied, only key objects with names
+      occurring lexically after <var>marker</var> will be returned in
+      <var>response</var>.
+
+    <p>When <var>max-keys</var> is supplied, it places an inclusive
+      upper limit on the number of key objects returned
+      in <var>response</var>. Note that Amazon currently limits
+      responses to at most 1000 key objects even
+      if <var>max-keys</var> is greater than 1000.
+
+    <p>When <var>delimiter</var> is supplied, key objects that have
+      the delimiter string after <var>prefix</var> in their names are
+      not returned in the <a href='#keys'><tt>KEYS</tt></a> attribute
+      of the response, but are instead accumulated into the
+      <a href='#common-prefixes'><tt>COMMON-PREFIXES</tt></a>
+      attribute of the response. For example:
+<pre class='code'>
+  * <b>(all-keys "zs3-demo")</b>
+  => #(#&lt;KEY "a" 4>
+       #&lt;KEY "b/1" 4>
+       #&lt;KEY "b/2" 4>
+       #&lt;KEY "b/3" 4>
+       #&lt;KEY "c/10" 4>
+       #&lt;KEY "c/20" 4>
+       #&lt;KEY "c/30" 4>)
+
+  * <b>(setf *response* (query-bucket "zs3-demo" :delimiter "/"))</b>
+  => #&lt;BUCKET-LISTING "zs3-demo">
+
+  * <b>(values (keys *response*) (common-prefixes *response*))</b>
+  => #(#&lt;KEY "a" 4>),
+     #("b/"
+       "c/")
+
+  * <b>(setf *response* (query-bucket "zs3-demo" :delimiter "/" :prefix "b/"))</b>
+  => #&lt;BUCKET-LISTING "zs3-demo">
+
+  * <b>(values (keys *response*) (common-prefixes *response*))</b>
+  => #(#&lt;KEY "b/1" 4>
+       #&lt;KEY "b/2" 4>
+       #&lt;KEY "b/3" 4>),
+     #()</pre>
+
+    <p>For more information about bucket queries,
+    see <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTBucketGET.html">GET
+    Bucket</a> in the Amazon S3 developer documentation.
+
+  </blockquote>
+
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='continue-bucket-query'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>continue-bucket-query</code>
+    <span class='args'>
+      <var>response</var>
+    </span>
+    <span class='result'>=> <var>response</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>If <var>response</var> is a truncated response from a previous
+    call to
+      <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a>,
+      continue-bucket-query returns the result of resuming the query at the
+      truncation point. When there are no more results,
+      continue-bucket-query returns NIL.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='bucket-name'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>bucket-name</code>
+    <span class='args'>
+      <var>response</var>
+    </span>
+    <span class='result'>=> <var>name</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the name of the bucket used in the call
+      to <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a> that
+      produced <var>response</var>.
+  </blockquote>
+</div>
+
+
+
+
+<div class='item'>
+  <div class='type'><a name='keys'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>keys</code>
+    <span class='args'>
+      <var>response</var>
+    </span>
+    <span class='result'>=> <var>keys-vector</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the vector of key objects in <var>response</var>. Key
+    object attributes are accessible via
+      <a href='#name'><tt>NAME</tt></a>,
+      <a href='#size'><tt>SIZE</tt></a>,
+      <a href='#etag'><tt>ETAG</tt></a>,
+      <a href='#last-modified'><tt>LAST-MODIFIED</tt></a>,
+      and <a href='#owner'><tt>OWNER</tt></a>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='common-prefixes'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>common-prefixes</code>
+    <span class='args'>
+      <var>response</var>
+    </span>
+    <span class='result'>=> <var>prefix-vector</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a vector of common prefix strings, based on the
+      delimiter argument of
+      the <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a> call that
+      produced <var>response</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='prefix'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>prefix</code>
+    <span class='args'>
+      <var>response</var>
+    </span>
+    <span class='result'>=> <var>prefix-string</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the prefix given to
+    the <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a> call that
+    produced <var>response</var>. If present, all keys
+    in <var>response</var> have <var>prefix-string</var> as a prefix.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='marker'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>marker</code>
+    <span class='args'>
+      <var>response</var>
+    </span>
+    <span class='result'>=> <var>marker</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the marker given to
+      the <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a> call that
+      produced <var>response</var>. If present,
+      it lexically precedes all key names in the response.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='delimiter'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>delimiter</code>
+    <span class='args'>
+      <var>response</var>
+    </span>
+    <span class='result'>=> <var>delimiter</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the delimiter used in
+      the <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a> call that
+      produced <var>response</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='truncatedp'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>truncatedp</code>
+    <span class='args'>
+      <var>response</var>
+    </span>
+    <span class='result'>=> <var>boolean</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns <i>true</i> if <var>response</var> is truncated; that
+    is, if there is more data to retrieve for a
+    given <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a>
+    query. <a href='#continue-bucket-query'><tt>CONTINUE-BUCKET-QUERY</tt></a>
+    may be used to fetch more data.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='last-modified'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>last-modified</code>
+    <span class='args'>
+      <var>key-object</var>
+    </span>
+    <span class='result'>=> <var>universal-time</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a universal time representing the last modified time
+    of <var>key-object</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='etag'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>etag</code>
+    <span class='args'>
+      <var>key-object</var>
+    </span>
+    <span class='result'>=> <var>etag-string</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the etag for <var>key-object</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='size'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>size</code>
+    <span class='args'>
+      <var>key-object</var>
+    </span>
+    <span class='result'>=> <var>size</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the size, in octets, of <var>key-object</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='owner'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>owner</code>
+    <span class='args'>
+      <var>key-object</var>
+    </span>
+    <span class='result'>=> <var>owner</var></span>
+  </div>
+
+  <blockquote class='description'>
+      <p>Returns the owner of <var>key-object</var>, or NIL if no owner
+      information is available.
+  </blockquote>
+</div>
+
+
+
+
+<a name='object-ops'><h3>Operations on Objects</h3></a>
+
+<p>Objects are the stored binary data in S3. Every object is uniquely
+  identified by a bucket/key pair. ZS3 has several functions for
+  storing and fetching objects, and querying object attributes.
+
+<div class='item'>
+  <div class='type'><a name='get-object'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>get-object</code>
+    <span class='args'>
+      <var>bucket</var>
+      <var>key</var>
+      <code class='llkw'>&amp;key</code>
+      <var>output</var> <br>
+      <var>start</var> <var>end</var> <br>
+      <var>when-modified-since</var> <var>unless-modified-since</var> <br>
+      <var>when-etag-matches</var> <var>unless-etag-matches</var> <br>
+      <var>if-exists</var> <var>string-external-format</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>object</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Fetch the object referenced by <var>bucket</var>
+    and <var>key</var>. The secondary value of all successful requests
+    is an alist of <a href='http://weitz.de/drakma/'>Drakma</a>-style
+    response HTTP headers.
+
+    <p>If <var>output</var> is <code class='kw'>:VECTOR</code> (the
+    default), the object's octets are returned in a vector.
+
+    <p>If <var>output</var> is <code class='kw'>:STRING</code>, the
+    object's octets are converted to a string using the encoding
+    specified by <var>string-external-format</var>, which defaults
+    to <code class='kw'>:UTF-8</code>. See <a href="http://weitz.de/flexi-streams/#external-formats">External
+    formats</a> in the FLEXI-STREAMS documentation for supported
+    values for the string external format. Note that, even
+    when <var>output</var> is <code class='kw'>:STRING</code>, the
+    start and end arguments operate on the object's underlying octets,
+    not the string representation in a particular encoding. It's
+    possible to produce a subsequence of the object's octets that are
+    not valid in the desired encoding.
+
+    <p>If <var>output</var> is a string or pathname, the object's
+    octets are saved to a file identified by the string or
+    pathname. The <var>if-exists</var> argument is passed
+    to <code>WITH-OPEN-FILE</code> to control the behavior when the
+    output file already exists. It defaults
+    to <code class='kw'>:SUPERSEDE</code>.
+
+    <p><var>start</var> marks the first index fetched from the
+    object's data. <var>end</var> specifies the index after the last
+    octet fetched. If start is NIL, it defaults to 0. If end is nil,
+    it defaults to the total length of the object. If
+    both <var>start</var> and <var>end</var> are
+    provided, <var>start</var> must be less than or equal
+    to <var>end</var>.
+
+    <p><var>when-modified-since</var>
+    and <var>unless-modified-since</var> are optional. If
+    <var>when-modified-since</var> is provided, the result will be the normal
+    object value if the object has been modified since the provided
+    universal time, NIL otherwise. The logic is reversed for
+    <var>unless-modified-since</var>.
+
+    <p><var>when-etag-matches</var> and <var>unless-etag-matches</var> are optional. If
+    <var>when-etag-matches</var> is provided, the result will be the
+    normal object value if the object's etag matches the provided
+    string, NIL otherwise. The logic is reversed
+    for <var>unless-etag-matches</var>.
+
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='get-vector'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>get-vector</code>
+    <span class='args'>
+      <var>bucket</var> <var>key</var>
+      <code class='llkw'>&amp;key</code>
+      <var>start</var> <var>end</var>
+      <var>when-modified-since</var> <var>unless-modified-since</var>
+      <var>when-etag-matches</var> <var>unless-etag-matches</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>vector</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>get-vector is a convenience interface to <a href='#get-object'><tt>GET-OBJECT</tt></a>. It is equivalent
+      to calling:
+
+<pre class='code'>
+  (get-object bucket key <b>:output :vector</b> ...)
+</pre>
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='get-string'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>get-string</code>
+    <span class='args'>
+      <var>bucket</var> <var>key</var>
+      <code class='llkw'>&amp;key</code>
+      <var>external-format</var>
+      <var>start</var> <var>end</var>
+      <var>when-modified-since</var>
+      <var>unless-modified-since</var>
+      <var>when-etag-matches</var>
+      <var>unless-etag-matches</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>string</var></span>
+  </div>
+
+  <blockquote class='description'>
+    get-string is a convenience interface
+    to <a href='#get-object'><tt>GET-OBJECT</tt></a>. It is equivalent
+    to calling:
+
+<pre class='code'>
+  (get-object bucket key <b>:output :string</b> :string-external-format external-format ...)
+</pre>
+
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='get-file'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>get-file</code>
+    <span class='args'>
+      <var>bucket</var> <var>key</var> <var>file</var>
+      <code class='llkw'>&amp;key</code>
+      <var>start</var> <var>end</var>
+      <var>when-modified-since</var>
+      <var>unless-modified-since</var>
+      <var>when-etag-matches</var>
+      <var>unless-etag-matches</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>pathname</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>get-file is a convenience interface
+      to <a href='#get-object'><tt>GET-OBJECT</tt></a>. It is
+      equivalent to calling:
+
+<pre class='code'>
+  (get-object bucket key <b>:output file</b> ...)
+</pre>
+
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='put-object'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>put-object</code>
+    <span class='args'>
+      <var>object</var> <var>bucket</var> <var>key</var>
+      <code class='llkw'>&amp;key</code>
+      <var>access-policy</var>
+      <var>public</var>
+      <var>metadata</var>
+      <var>string-external-format</var>
+      <var>cache-control</var>
+      <var>content-encoding</var>
+      <var>content-disposition</var>
+      <var>content-type</var>
+      <var>expires</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Stores the octets of <var>object</var> in the location
+    identified by <var>bucket</var> and <var>key</var>.
+
+    <p>If <i>object</i> is an octet vector, it is stored directly.
+
+    <p>If <i>object</i> is a string, it is converted to an octet
+    vector using <i>string-external-format</i>, which defaults
+    to <code class='kw'>:UTF-8</code>, then
+    stored. See <a href="http://weitz.de/flexi-streams/#external-formats">External
+    formats</a> in the FLEXI-STREAMS documentation for supported
+    values for the string external format.
+
+    <p>If <i>object</i> is a pathname, its contents are loaded in
+    memory as an octet vector and stored.
+
+    <p>If provided, <var>access-policy</var> should be one of the
+    following:
+
+      <ul> 
+	<li> <code class='kw'>:PRIVATE</code> - object owner is
+	  granted <code class='kw'>:FULL-CONTROL</code>; this is the
+	  default behavior if no access policy is provided
+	<li> <code class='kw'>:PUBLIC-READ</code> - all users,
+	  regardless of authentication, can read the object
+	<li> <code class='kw'>:AUTHENTICATED-READ</code> -
+	  authenticated Amazon AWS users can read the object
+      </ul>
+
+    <p>For more information about access policies,
+      see <a href='http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTAccessPolicy.html'>Canned
+	Access Policies</a> in the Amazon S3 developer documentation.
+
+    <p>If <var>public</var> is <i>true</i>, it has the same effect as
+      providing an <var>access-policy</var>
+      of <code class='kw'>:PUBLIC-READ</code>. An error is signaled if
+      both <var>public</var> and
+      <var>access-policy</var> are provided.
+	  
+
+    <p>If provided, <var>metadata</var> should be an alist of Amazon
+    metadata to set on the object. When the object is fetched again,
+    the metadata will be returned in HTTP headers prefixed with
+    "x-amz-meta-".
+
+    <p>The <i>cache-control</i>, <i>content-encoding</i>, <i>content-disposition</i>,
+    <i>content-type</i>, and <i>expires</i> values are all used to set
+    HTTP properties of the object that are returned with subsequent
+    GET or HEAD requests. If <i>content-type</i> is not set, it
+    defaults to "binary/octet-stream". The others default to
+    NIL. If <i>expires</i> is provided, it should be a universal time.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='put-vector'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>put-vector</code>
+    <span class='args'>
+      <var>vector</var>
+      <var>bucket</var>
+      <var>key</var> <code class='llkw'>&amp;key</code>
+      <var>start</var> <var>end</var>
+      <var>access-policy</var>
+      <var>public</var> <var>metadata</var> 
+      <var>content-disposition</var>
+      <var>content-encoding</var>
+      <var>content-type</var>
+      <var>expires</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>put-vector is a convenience interface
+    to <a href='#put-object'><tt>PUT-OBJECT</tt></a>. It is similar
+    to calling:
+
+<pre class='code'>
+  (put-object vector bucket key ...)
+</pre>
+  </blockquote>
+
+  <p>If one of <var>start</var> or <var>end</var> is provided, they
+    are used as bounding index designators on the string, and only a
+    subsequence is used.
+</div>
+
+<div class='item'>
+  <div class='type'><a name='put-string'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>put-string</code>
+    <span class='args'>
+      <var>string</var> <var>bucket</var> <var>key</var>
+      <code class='llkw'>&amp;key</code>
+      <var>start</var> <var>end</var>
+      <var>external-format</var>
+      <var>access-policy</var>
+      <var>public</var> <var>metadata</var> 
+      <var>content-disposition</var>
+      <var>content-encoding</var>
+      <var>content-type</var>
+      <var>expires</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>put-string is a convenience interface
+to <a href='#put-object'><tt>PUT-OBJECT</tt></a>. It is similar to
+calling:
+
+<pre class='code'>
+  (put-object string bucket key :string-external-format external-format ...)
+</pre>
+  </blockquote>
+
+  <p>If one of <var>start</var> or end is <var>supplied</var>, they
+    are used as bounding index designators on the string, and only a
+    substring is used.
+</div>
+
+<div class='item'>
+  <div class='type'><a name='put-file'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>put-file</code>
+    <span class='args'>
+      <var>file</var> <var>bucket</var> <var>key</var>
+      <code class='llkw'>&amp;key</code>
+      <var>start</var> <var>end</var>
+      <var>access-policy</var>
+      <var>public</var> <var>metadata</var> 
+      <var>content-disposition</var> <var>content-encoding</var> <var>content-type</var>
+      <var>expires</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>put-file is a convenience interface
+    to <a href='#put-object'><tt>PUT-OBJECT</tt></a>. It is almost
+    equivalent to calling:
+
+<pre class='code'>
+  (put-object (pathname file) bucket key ...)
+</pre>
+
+    <p>If <var>key</var> is T, the <code>FILE-NAMESTRING</code> of
+      the file is used as the key instead of <i>key</i>.
+
+    <p>If one of <var>start</var> or <var>end</var> is supplied, only
+      a subset of the file is used. If <var>start</var> is not
+      NIL, <var>start</var> octets starting from the beginning of the
+      file are skipped. If <var>end</var> is not NIL, octets in the
+      file at and after <var>end</var> are ignored. An error of type
+      <tt>CL:END-OF-FILE</tt> is signaled if <var>end</var> is
+      provided and the file size is less than <var>end</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='put-stream'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>put-stream</code>
+    <span class='args'>
+      <var>file</var> <var>bucket</var> <var>key</var>
+      <code class='llkw'>&amp;key</code>
+      <var>start</var> <var>end</var>
+      <var>access-policy</var>
+      <var>public</var> <var>metadata</var> 
+      <var>content-disposition</var> <var>content-encoding</var> <var>content-type</var>
+      <var>expires</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>put-stream is similar to
+    to <a href='#put-object'><tt>PUT-OBJECT</tt></a>. It has the same
+    effect as collecting octets from <var>stream</var> into a vector
+    and using:
+
+<pre class='code'>
+  (put-object vector bucket key ...)
+</pre>
+
+    <p>If <var>start</var> is not NIL, <var>start</var> octets
+      starting from the current position in the stream are skipped
+      before collecting.
+
+    <p>If <var>end</var> is NIL, octets are collected until the end of
+      the stream is reached.
+
+    <p>If <var>end</var> is not NIL, collecting octets stops just
+      before reaching <var>end</var> in the stream. An error of type
+      <tt>CL:END-OF-FILE</tt> is signaled if the stream ends
+      prematurely.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='copy-object'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>copy-object</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>from-bucket</var>
+      <var>from-key</var>
+      <var>to-bucket</var>
+      <var>to-key</var> <br>
+      <var>access-policy</var>
+      <var>public</var> <br>
+      <var>when-etag-matches</var>
+      <var>unless-etag-matches</var> <br>
+      <var>when-modified-since</var>
+      <var>unless-modified-since</var> <br>
+      <var>metadata</var> <var>public</var> <var>precondition-errors</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Copies the object identified by <var>from-bucket</var>
+    and <var>from-key</var> to a new location identified by 
+    <var>to-bucket</var> and <var>to-key</var>.
+
+    If <var>to-bucket</var> is NIL, <var>from-bucket</var> is used as
+    the target. If <var>to-key</var> is nil, <var>from-key</var> is
+    used as the target. An error is signaled if both <var>to-bucket</var> and
+    <var>to-key</var> are NIL.
+
+    <p><var>access-policy</var> and <var>public</var> have the same
+      effect on the target object as
+      in <a href='#put-object'><tt>PUT-OBJECT</tt></a>.
+
+    <p>The precondition arguments <var>when-etag-matches</var>, <var>unless-etag-matches</var>,
+    <var>when-modified-since</var>, and <var>unless-modified-since</var> work the same way they
+    do in <a href='#get-object'><tt>GET-OBJECT</tt></a>, but with one difference: if <var>precondition-errors</var> is
+    <i>true</i>, an <code>PRECONDITION-FAILED</code> error is signaled
+    when a precondition does not hold, instead of returning NIL.
+
+    <p>If <var>metadata</var> is explicitly provided, it follows the
+    same behavior as
+    with <a href='#put-object'><tt>PUT-OBJECT</tt></a>. Passing NIL
+    means that the new object has no metadata. Otherwise, the metadata
+    is copied from the original object.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='delete-object'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>delete-object</code>
+    <span class='args'>
+      <var>bucket</var>
+      <var>key</var>
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Deletes the object identified by <var>bucket</var>
+      and <var>key</var>.
+    <p>If <var>bucket</var> is a valid bucket for
+      which you have delete access granted, S3 will always return a success
+      response, even if <var>key</var> does not reference an existing
+      object.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='delete-objects'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>delete-objects</code>
+    <span class='args'>
+      <var>bucket</var>
+      <var>keys</var>
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Deletes <var>keys</var>, which should be a sequence of keys,
+    from <var>bucket</var>.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='delete-all-objects'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>delete-all-objects</code>
+    <span class='args'>
+      <var>bucket</var>
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>count</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Deletes all objects in <var>bucket</var> and returns the count
+      of objects deleted.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='object-metadata'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>object-metadata</code>
+    <span class='args'>
+      <var>bucket</var>
+      <var>key</var>
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>metadata-alist</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the metadata for the object identified by <var>bucket</var> and <var>key</var>, or
+    NIL if there is no metadata. For example:
+
+<pre class='code'>
+  * <b>(put-string "Hadjaha!" "zs3-demo" "hadjaha.txt" :metadata (parameters-alist :language "Swedish"))</b>
+  => #&lt;RESPONSE 200 "OK" {1003BD2841}>    
+
+  * <b>(object-metadata "zs3-demo" "hadjaha.txt")</b>
+  => ((:LANGUAGE . "Swedish"))
+</pre>
+
+  </blockquote>
+</div>
+
+
+<a name='access-control'><h3>Access Control</h3></a>
+
+<p>Each S3 resource has an associated access control list that is
+  created automatically when the resource is created. The access
+  control list specifies the resource owner and a list of permission
+  grants.
+
+<p>Grants consist of a permission and a grantee. The permission must
+  be one of <code class='kw'>:READ</code>, <code class='kw'>:WRITE</code>, 
+  <code class='kw'>:READ-ACL</code>, <code class='kw'>:WRITE-ACL</code>,
+  or <code class='kw'>:FULL-CONTROL</code>. The grantee should be a
+  person object, an acl-group object, or an acl-email object.
+
+<p>ZS3 has several functions that assist in reading, modifying, and
+  storing access control lists.
+  
+
+<div class='item'>
+  <div class='type'><a name='get-acl'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>get-acl</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>bucket</var>
+      <var>key</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>owner</var>, <var>grants</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the owner and grant list for a resource as
+    multiple values.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='put-acl'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>put-acl</code>
+    <span class='args'>
+      <var>owner</var> <var>grants</var>
+      <code class='llkw'>&amp;key</code>
+      <var>bucket</var>
+      <var>key</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Sets the owner and grant list of a resource.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='grant'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>grant</code>
+    <span class='args'>
+      <var>permission</var>
+      <code class='llkw'>&amp;key</code>
+      <var>to</var>
+    </span>
+    <span class='result'>=> <var>grant</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a grant object that represents a permission (one of <code class='kw'>:READ</code>, <code class='kw'>:WRITE</code>,
+      <code class='kw'>:READ-ACL</code>, <code class='kw'>:WRITE-ACL</code>,
+      or <code class='kw'>:FULL-CONTROL</code>) for the
+      grantee <var>to</var>. For example:
+
+<pre class='code'>
+  * <b>(grant :full-control :to (<a href='#acl-email'>acl-email</a> "bob@example.com"))</b>
+  => #&lt;GRANT :FULL-CONTROL to "bob@example.com">
+
+  * <b>(grant :read :to <a href='#*all-users*'>*all-users*</a>)</b>
+  => #&lt;GRANT :READ to "AllUsers">
+</pre>
+
+    <p>It can be used to create or modify a grant list for use
+    with <a href='#put-acl'><tt>PUT-ACL</tt></a>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='acl-eqv'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>acl-eqv</code>
+    <span class='args'>
+      <var>a</var> <var>b</var>
+    </span>
+    <span class='result'>=> <var>boolean</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns <i>true</i> if <var>a</var> and <var>b</var> are equivalent
+      ACL-related objects (person, group, email, or grant).
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='*all-users*'>[Special variable]</a></div>
+  <div class='signature'>
+    <code class='name'>*all-users*</code>
+  </div>
+
+  <blockquote class='description'>
+    <p>This acl-group includes all users, including unauthenticated
+    clients.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='*aws-users*'>[Special variable]</a></div>
+  <div class='signature'>
+    <code class='name'>*aws-users*</code>
+  </div>
+
+  <blockquote class='description'>
+    <p>This acl-group object includes only users that have an
+    Amazon Web Services account.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='*log-delivery*'>[Special variable]</a></div>
+  <div class='signature'>
+    <code class='name'>*log-delivery*</code>
+  </div>
+
+  <blockquote class='description'>
+    <p>This acl-group object includes the S3 system user that creates
+      logfile objects. See
+      also <a href='#enable-logging-to'><tt>ENABLE-LOGGING-TO</tt></a>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='acl-email'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>acl-email</code>
+    <span class='args'>
+      <var>email-address</var>
+    </span>
+    <span class='result'>=> <var>acl-email</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns an acl-email object, which can be used as a grantee for
+      <a href='#grant'><tt>GRANT</tt></a>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='acl-person'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>acl-person</code>
+    <span class='args'>
+      <var>id</var>
+      <code class='llkw'>&amp;optional</code>
+      <var>display-name</var>
+    </span>
+    <span class='result'>=> <var>acl-person</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns an acl-person object for use as a resource owner (for
+      <a href='#put-acl'><tt>PUT-ACL</tt></a>) or as a grantee
+      (for <a href='#grant'><tt>GRANT</tt></a>). <var>id</var> must be
+      a string representing the person's Amazon AWS canonical ID; for
+      information about getting the canonical ID, see
+      the <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/S3_ACLs.html">Access
+      Control Lists</a> in the Amazon S3 developer
+      documentation. If <var>display-name</var> is provided, it is
+      used only for printing the object in Lisp; it is ignored when
+      passed to S3.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='me'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>me</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>acl-person</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the acl-person object associated with the current
+      credentials.
+
+    <p>This data requires a S3 request, but the result is always the
+    same per credentials and is cached.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='make-public'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>make-public</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>bucket</var>
+      <var>key</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Makes a resource publicly accessible, i.e. readable by
+      the <a href='#*all-users*'><tt>*ALL-USERS*</tt></a> group.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='make-private'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>make-private</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>bucket</var>
+      <var>key</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Removes public access to a resource, i.e. removes all
+      access grants for
+      the <a href='#*all-users*'><tt>*ALL-USERS*</tt></a> group.
+  </blockquote>
+</div>
+
+
+
+<a name='access-logging'><h3>Access Logging</h3></a>
+
+<p>S3 offers support for logging information about client
+  requests. Logfile objects are delivered by a system user in
+  the <a href='#*log-delivery*'><tt>*LOG-DELIVERY*</tt></a> group to a
+  bucket of your choosing. For more information about S3 access
+  logging and the logfile format, see
+  the <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/ServerLogs.html">Server
+  Access Logging</a> in the Amazon S3
+  developer documentation.
+
+<div class='item'>
+  <div class='type'><a name='enable-logging-to'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>enable-logging-to</code>
+    <span class='args'>
+      <var>bucket</var>
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    Adds the necessary permission grants to <var>bucket</var> to allow
+    S3 to write logfile objects into it.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='disable-logging-to'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>disable-logging-to</code>
+    <span class='args'>
+      <var>bucket</var>
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Changes the access control list of <var>bucket</var> to remove
+    all grants for
+    the <a href='#*log-delivery*'><tt>*LOG-DELIVERY*</tt></a> group.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='enable-logging'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>enable-logging</code>
+    <span class='args'>
+      <var>bucket</var>
+      <var>target-bucket</var>
+      <var>target-prefix</var>
+      <code class='llkw'>&amp;key</code>
+      <var>target-grants</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Enables logging of all requests
+    involving <var>bucket</var>. Logfile objects are created in
+      <var>target-bucket</var> and each logfile's key starts with
+      <var>target-prefix</var>.
+
+    <p>When a new logfile is
+      created, its list of access control grants is extended with
+      <var>target-grants</var>, if any.
+
+    <p>If <var>target-bucket</var> does not have the necessary grants
+    to allow logging, the grants are implicitly added by
+    calling <a href='#enable-logging-to'><tt>ENABLE-LOGGING-TO</tt></a>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='disable-logging'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>disable-logging</code>
+    <span class='args'>
+      <var>bucket</var> <code class='llkw'>&amp;key</code> <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    Disables logging for <var>bucket</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='logging-setup'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>logging-setup</code>
+    <span class='args'>
+      <var>bucket</var>
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>target-bucket</var>,
+      <var>target-prefix</var>,
+      <var>target-grants</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>If logging is enabled for <var>bucket</var>, returns the target
+      bucket, target prefix, and target grants as multiple values.
+  </blockquote>
+</div>
+
+
+<a name='misc'><h3>Miscellaneous Operations</h3></a>
+
+<p>
+
+<div class='item'>
+  <div class='type'><a name='*use-ssl*'>[Special variable]</a></div>
+  <div class='signature'>
+    <code class='name'>*use-ssl*</code>
+  </div>
+
+  <blockquote class='description'>
+    <p>When <i>true</i>, requests to S3 are sent via HTTPS. The
+      default is NIL.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='make-post-policy'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>make-post-policy</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>expires</var>
+      <var>conditions</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>policy</var>, <var>signature</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns an encoded HTML POST form policy and its signature as
+    multiple values. The policy can be used to conditionally allow any
+    user to put objects into S3.
+
+    <p><var>expires</var> must be a universal time after which
+    the policy is no longer accepted.
+
+    <p><var>conditions</var> must be a list of conditions that the
+    posted form fields must satisfy. Each condition is a list of a
+    condition keyword, a form field name, and the form field
+    value. For example, the following are all valid conditions:
+
+    <p>
+      <ul>
+	<li> <code>(:starts-with "key" "uploads/")</code>
+	<li> <code>(:eq "bucket" "user-uploads")</code>
+	<li> <code>(:eq "acl" "public-read")</code>
+	<li> <code>(:range "content-length-range" 1 10000)</code>
+      </ul>
+
+    <p>These conditions are converted into a post policy description,
+    base64-encoded, and returned as <var>policy</var>. The signature
+    is returned as <var>signature</var>. These values can then be
+    embedded in an HTML form and used to allow direct browser uploads.
+
+    <p>For example, if <var>policy</var> is
+    "YSBwYXRlbnRseSBmYWtlIHBvbGljeQ==" and the policy signature is
+    "ZmFrZSBzaWduYXR1cmU=", you could construct a form like this:
+
+<p class='html'>
+&lt;form action="http://user-uploads.s3.amazonaws.com/" method="post" enctype="multipart/form-data"><br>
+&lt;input type="input" name="key" value="uploads/fun.jpg"><br>
+&lt;input type=hidden name="acl" value="public-read"><br>
+&lt;input type=hidden name="AWSAccessKeyId" value="8675309JGT9876430310"><br>
+&lt;input type=hidden name="Policy" value="YSBwYXRlbnRseSBmYWtlIHBvbGljeQ=="><br>
+&lt;input type=hidden name='Signature' value="ZmFrZSBzaWduYXR1cmU="><br>
+&lt;input name='file' type='file'><br>
+&lt;input type=submit value='Submit'><br>
+&lt;/form><br>
+
+   <p>For full, detailed documentation of browser-based POST uploads
+   and policy documents,
+   see <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/UsingHTTPPOST.html">Browser-Based
+   Uploads Using POST</a> in the Amazon S3 developer documentation.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='head'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>head</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>bucket</var>
+      <var>key</var>
+      <var>parameters</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>headers-alist</var>,
+      <var>status-code</var>,
+      <var>phrase</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Submits a HTTP HEAD request for the resource identified by
+      <var>bucket</var> and optionally <var>key</var>. Returns the
+      <a href='http://weitz.de/drakma/'>Drakma</a> headers, HTTP
+      status code, and HTTP phrase as multiple values.
+
+    <p>When <var>parameters</var> is supplied, it should be an alist
+      of keys and values to pass as GET request parameters. For
+      example:
+
+<pre class='code'>
+  * <b>(head :bucket "zs3-demo" :parameters (<a href='http://cliki.net/parameters-alist?download'>parameters-alist</a> :max-keys 0))</b>
+  => ((:X-AMZ-ID-2  . "...")
+      (:X-AMZ-REQUEST-ID . "...")
+      (:DATE . "Sat, 27 Sep 2008 19:00:35 GMT")
+      (:CONTENT-TYPE . "application/xml")
+      (:TRANSFER-ENCODING . "chunked")
+      (:SERVER . "AmazonS3")
+      (:CONNECTION . "close")),
+      200,
+      "OK"</pre>  
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='authorized-url'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>authorized-url</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>bucket</var>
+      <var>key</var>
+      <var>vhost</var>
+      <var>expires</var>
+      <var>ssl</var>
+      <var>sub-resource</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>url</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Creates an URL that allows temporary access to a resource regardless
+    of its ACL.
+
+    <p>If neither <var>bucket</var> nor <var>key</var> is specified, the top-level bucket listing
+    is accessible. If <var>key</var> is not specified, listing the keys of <var>bucket</var> is
+    accessible. If both <var>bucket</var> and key are <var>specified</var>, the object specified
+    by <var>bucket</var> and <var>key</var> is accessible.
+
+    <p><var>expires</var> is required, and should be the integer
+    universal time after which the URL is no longer valid.
+
+    <p><var>vhost</var> controls the construction of the
+    url. If <var>vhost</var> is nil, the constructed URL refers to the
+    bucket, if present, as part of the path. If <var>vhost</var>
+    is <code class='kw'>:AMAZON</code>, the bucket name is used as a
+    prefix to the Amazon hostname. If <var>vhost</var>
+    is <code class='kw'>:FULL</code>, the bucket name becomes the full
+    hostname of the url. For example:
+
+<pre class='code'>
+  * <b>(authorized-url :bucket "foo" :key "bar" :vhost nil)</b>
+  =&gt; "http://s3.amazonaws.com/foo/bar?..."
+
+  * <b>(authorized-url :bucket "foo" :key "bar" :vhost :amazon)</b>
+  =&gt; "http://foo.s3.amazonaws.com/bar?..."
+
+  * <b>(authorized-url :bucket "foo.example.com" :key "bar" :vhost :full)</b>
+  =&gt;  "http://foo.example.com/bar?..."
+</pre>
+
+    <p>If <i>ssl</i> is <i>true</i>, the URL has "https" as the scheme,
+    otherwise it has "http".
+
+    <p>If <i>sub-resource</i> is specified, it is used as part of the
+    query string to access a specific sub-resource. Example Amazon
+    sub-resources include "acl" for access to the ACL, "location" for
+    location information, and "logging" for logging information. For
+    more information about the various sub-resources, see the Amazon
+    S3 developer documentation.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='resource-url'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>resource-url</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>bucket</var>
+      <var>key</var>
+      <var>vhost</var>
+      <var>ssl</var>
+      <var>sub-resource</var>
+    </span>
+    <span class='result'>=> <var>url</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns an URL that can be used to reference a resource. See
+      <a href='#authorized-url'><tt>AUTHORIZED-URL</tt></a> for more
+      info.
+  </blockquote>
+</div>
+
+
+<a name='utility'><h3>Utility Functions</h3></a>
+
+<p>
+
+<div class='item'>
+  <div class='type'><a name='octet-vector'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>octet-vector</code>
+    <span class='args'>
+      <code class='llkw'>&amp;rest</code>
+      <var>octets</var>
+    </span>
+    <span class='result'>=> <var>octet-vector</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a vector of type
+      <code>(simple-array&nbsp;(unsigned-byte&nbsp;8)&nbsp;(*))</code> initialized with <var>octets</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='now+'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>now+</code>
+    <span class='args'>
+      <var>delta</var>
+    </span>
+    <span class='result'>=> <var>universal-time</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a universal time that represents the current time
+      incremented by <var>delta</var> seconds. It's useful for passing
+      as the <code class='kw'>:EXPIRES</code> parameter to functions
+      like <a href='#put-object'><tt>PUT-OBJECT</tt></a>
+      and <a href='#authorized-url'><tt>AUTHORIZED-URL</tt></a>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='now-'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>now-</code>
+    <span class='args'>
+      <var>delta</var>
+    </span>
+    <span class='result'>=> <var>universal-time</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Like <a href='#now+'><tt>NOW+</tt></a>, but decrements the
+      current time instead of incrementing it.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='file-etag'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>file-etag</code>
+    <span class='args'>
+      <var>pathname</var>
+    </span>
+    <span class='result'>=> <var>etag</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the etag of <var>pathname</var>. This can be useful for the
+      conditional arguments
+      <code class='kw'>:WHEN-ETAG-MATCHES</code> and
+      <code class='kw'>:UNLESS-ETAG-MATCHES</code>
+      in <a href='#get-object'><tt>GET-OBJECT</tt></a>
+      and <a href='#copy-object'><tt>COPY-OBJECT</tt></a>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='parameters-alist'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>parameters-alist</code>
+    <span class='args'>
+      <code class='llkw'>&amp;rest</code>
+      <var>parameters</var>
+      <code class='llkw'>&amp;key</code>
+      <code class='llkw'>&amp;allow-other-keys</code>
+    </span>
+    <span class='result'>=> <var>alist</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns an alist based on all keyword arguments passed to the
+      function. Keywords are converted to their lowercase symbol name and
+      values are converted to strings. For example:
+
+<pre class='code'>
+  * <b>(parameters-alist :name "Bob" :age 21)</b>
+  => (("name" . "Bob") ("age" . "21"))
+</pre>
+
+    <p>This can be used to construct Amazon metadata alists
+    for <a href='#put-object'><tt>PUT-OBJECT</tt></a>
+    and <a href='#copy-object'><tt>COPY-OBJECT</tt></a>, or request
+    parameters in <a href='#head'><tt>HEAD</tt></a>.
+
+  </blockquote>
+</div>
+
+
+
+<div class='item'>
+  <div class='type'><a name='clear-redirects'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>clear-redirects</code>
+    <span class='args'>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Clear ZS3's internal cache of redirections.
+      
+    <p>Most ZS3 requests are submitted against the Amazon S3 endpoint
+      "s3.amazonaws.com". Some requests, however, are permanently
+      redirected by S3 to new endpoints. ZS3 maintains an internal cache
+      of permanent redirects, but it's possible for that cache to get
+      out of sync if external processes alter the bucket structure
+
+    <p>For example, if the bucket "eu.zs3" is created with a EU
+      location constraint, S3 will respond to requests to that bucket
+      with a permanent redirect to "eu.zs3.s3.amazonaws.com", and ZS3
+      will cache that redirect information. But if the bucket is
+      deleted and recreated by a third party, the redirect might no
+      longer be necessary.
+  </blockquote>
+</div>
+
+
+<a name='cloudfront'><h2>CloudFront</h2>
+
+<p>CloudFront functions allow the creation and manipulation of
+  distributions. In ZS3, distributions are represented by objects that
+  reflect the state of a distributon at some point in time. It's
+  possible for the distribution to change behind the scenes without
+  notice, e.g. when a distribution's <a href='#status'>status</a> is
+  updated from "InProgress" to "Deployed".
+
+  <p>The
+  functions <a href='#enable'><tt>ENABLE</tt></a>, <a href='#disable'><tt>DISABLE</tt></a>, <a href='#ensure-cname'><tt>ENSURE-CNAME</tt></a>,
+  <a href='#remove-cname'><tt>REMOVE-CNAME</tt></a>,
+  and <a href='#set-comment'><tt>SET-COMMENT</tt></a> are designed so
+  that regardless of the state of the distribution provided, after the
+  function completes, the new state of the distribution will reflect
+  the desired update. The
+  functions <a href='#status'><tt>STATUS</tt></a>, <a href='#cnames'><tt>CNAMES</tt></a>,
+  and
+  <a href='#enabledp'><tt>ENABLEDP</tt></a> do not automatically
+  refresh the object and therefore might reflect outdated
+  information. To ensure the object has the most recent information,
+  use <a href='#refresh'><tt>REFRESH</tt></a>. For example, to fetch
+  the current, live status, use <tt>(status (refresh
+  distribution))</tt>.
+
+
+
+<div class='item'>
+  <div class='type'><a name='all-distributions'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>all-distributions</code>
+    <span class='args'>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a list of all distributions.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='create-distribution'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>create-distribution</code>
+    <span class='args'>
+      <var>bucket-name</var>
+      <code class='llkw'>&amp;key</code>
+      <var>cnames</var>
+      <var>enabled</var>
+      <var>comment</var>
+    </span>
+    <span class='result'>=> <var>distribution</var></span>
+  </div>
+
+  <blockquote class='description'>
+    Creates and returns a new distribution object that will cache
+    objects from the bucket named
+    by <var>bucket-name</var>.
+
+    <p>If <var>cnames</var> is provided, it is taken as a designator
+    for a list of additional domain names that can be used to access
+    the distribution.
+
+    <p>If <var>enabled</var> is NIL, the distribution is initially
+      created in a disabled state. The default value is is T.
+
+    <p>If <var>comment</var> is provided, it becomes part of the newly
+      created distribution.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='delete-distribution'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>delete-distribution</code>
+    <span class='args'>
+      <var>distribution</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Deletes <var>distribution</var>. Distributions must be disabled
+      before deletion; see <a href='#disable'><tt>DISABLE</tt></a>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='refresh'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>refresh</code>
+    <span class='args'>
+      <var>distribution</var>
+    </span>
+    <span class='result'>=> <var>distribution</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Queries Amazon for the latest information
+    regarding <var>distribution</var> and destructively modifies the
+    instance with the new information. Returns its argument.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='enable'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>enable</code>
+    <span class='args'>
+      <var>distribution</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Enables <var>distribution</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='disable'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>disable</code>
+    <span class='args'>
+      <var>distribution</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Disables <var>distribution</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='ensure-cname'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>ensure-cname</code>
+    <span class='args'>
+      <var>distribution</var>
+      <var>cname</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Adds <var>cname</var> to the CNAMEs of <var>distribution</var>,
+      if necessary.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='remove-cname'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>remove-cname</code>
+    <span class='args'>
+      <var>distribution</var>
+      <var>cname</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Removes <var>cname</var> from the CNAMEs of <var>distribution</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='set-comment'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>set-comment</code>
+    <span class='args'>
+      <var>distribution</var>
+      <var>comment</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Sets the comment of <var>distribution</var> to <var>comment</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='distributions-for-bucket'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>distributions-for-bucket</code>
+    <span class='args'>
+      <var>bucket-name</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a list of distributions that
+      have <var>bucket-name</var> as the origin bucket.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='distribution-error'>[Condition]</a></div>
+  <div class='signature'>
+    <code class='name'>distribution-error</code>
+  </div>
+
+  <blockquote class='description'>
+    <p>All errors signaled as a result of a CloudFront request error
+      are subtypes of <tt>distribution-error</tt>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='distribution-not-disabled'>[Condition]</a></div>
+  <div class='signature'>
+    <code class='name'>distribution-not-disabled</code>
+  </div>
+
+  <blockquote class='description'>
+    <p>Distributions must be fully disabled before they are
+      deleted. If they have not been disabled, or the status of the
+      distribution is still
+      "InProgress", <tt>distribution-not-disabled</tt> is signaled.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='cname-already-exists'>[Condition]</a></div>
+  <div class='signature'>
+    <code class='name'>cname-already-exists</code>
+  </div>
+
+  <blockquote class='description'>
+    <p>A CNAME may only appear on one distribution. If you attempt to
+      add a CNAME to a distribution that is already present on some
+      other distribution, <tt>cname-already-exists</tt> is signaled.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='too-many-distributions'>[Condition]</a></div>
+  <div class='signature'>
+    <code class='name'>too-many-distributions</code>
+  </div>
+
+  <blockquote class='description'>
+    <p>If creating a new distribution
+      via <a href='#create-distribution'><tt>CREATE-DISTRIBUTION</tt></a>
+      would exceed the account limit of total distributions,
+      <tt>too-many-distributions</tt> is signaled.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='status'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>status</code>
+    <span class='args'>
+      <var>distribution</var>
+    </span>
+    <span class='result'>=> <var>status</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a string describing the status
+      of <var>distribution</var>. The status is either "InProgress",
+      meaning that the distribution's configuration has not fully
+      propagated through the CloudFront system, or "Deployed".
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='origin-bucket'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>origin-bucket</code>
+    <span class='args'>
+      <var>distribution</var>
+    </span>
+    <span class='result'>=> <var>origin-bucket</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the origin bucket for <var>distribution</var>. It is
+      different from a normal ZS3 bucket name, because it has
+      ".s3.amazonaws.com" as a suffix.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='domain-name'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>domain-name</code>
+    <span class='args'>
+      <var>distribution</var>
+    </span>
+    <span class='result'>=> <var>domain-name</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the domain name through which CloudFront-enabled access
+      to a resource may be made.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='cnames'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>cnames</code>
+    <span class='args'>
+      <var>distribution</var>
+    </span>
+    <span class='result'>=> <var>cnames</var></span>
+  </div>
+
+  <blockquote class='description'>
+    Returns a list of CNAMEs associated with <var>distribution</var>.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='enabledp'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>enabledp</code>
+    <span class='args'>
+      <var>distribution</var>
+    </span>
+    <span class='result'>=> <var>boolean</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns <i>true</i> if <var>distribution</var> is enabled, NIL
+      otherwise.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='invalidate-paths'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>invalidate-paths</code>
+    <span class='args'>
+      <var>distribution</var>
+      <var>paths</var>
+    </span>
+    <span class='result'>=> <var>invalidation</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Initiates the invalidation of resources identified
+      by <var>paths</var> in <var>distribution</var>. <var>paths</var>
+      should consist of key names that correspond to objects in the
+      distribution's S3 bucket.
+
+    <p>The <var>invalidation</var> object reports on the status of the
+      invalidation request. It can be queried
+      with <a href='#status'><tt>STATUS</tt></a> and refreshed
+      with <a href='#refresh'><tt>REFRESH</tt></a>.
+
+<pre class='code'>
+* <b>(invalidate-paths distribution '("/css/site.css" "/js/site.js"))</b>
+#&lt;INVALIDATION "I1HJC711OFAVKO" [InProgress]>
+* <b>(progn (sleep 300) (refresh *))</b>
+#&lt;INVALIDATION "I1HJC711OFAVKO" [Completed]>
+</pre>
+  </blockquote>
+</div>
+
+
+
+
+<a name='references'><h2>References</h2></a>
+
+  <ul>
+    <li> Amazon, <a href="http://developer.amazonwebservices.com/connect/entry.jspa?externalID=123&categoryID=48">Amazon
+   S3 Technical Documentation</a>
+    <li> Amazon, <a href="http://developer.amazonwebservices.com/connect/entry.jspa?externalID=1876&categoryID=213">Amazon CloudFront Technical Documentation</a>
+  </ul>
+
+
+				      
+
+<a name='acknowledgements'><h2>Acknowledgements</h2>
+
+  <p>Several people on <a href='http://freenode.net/'>freenode</a>
+    #lisp pointed out typos and glitches in this
+    documentation. Special thanks to Bart "_3b" Botta for providing a
+    detailed documentation review that pointed out glitches,
+    omissions, and overly confusing passages.
+
+  <p>James Wright corrected a problem with computing the string to
+    sign and URL encoding.
+
+<a name='feedback'><h2>Feedback</h2></a>
+
+  <p>If you have any questions or comments about ZS3, please email
+  me, <a href='mailto:xach@xach.com'>Zach Beane</a>
+
+  <p>For ZS3 announcements and development discussion, please see the
+  <a href="http://groups.google.com/group/zs3-devel">zs3-devel</a>
+  mailing list.
+
+  <p><i>2010-09-03</i>
+  
+ <p class='copyright'>Copyright &copy; 2008-2010 Zachary Beane, All Rights Reserved
+
+  
+</div>
+</body>
+</html>
+

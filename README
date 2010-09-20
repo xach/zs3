@@ -1,0 +1,24 @@
+
+This is ZS3, a library for working with Amazon's Simple Storage
+Service (S3) and CloudFront service from Common Lisp.
+
+For more information about S3, see:
+
+  http://aws.amazon.com/s3/
+
+For more information about CloudFront, see:
+
+  http://aws.amazon.com/cloudfront/
+
+For documentation of ZS3, including how to install and use, see
+doc/index.html in this distribution, or visit:
+
+  http://www.xach.com/lisp/zs3/
+
+If you have any questions or comments about ZS3, please contact me,
+Zach Beane, at xach@xach.com. You can also discuss ZS3 on the ZS3
+mailing list at http://groups.google.com/group/zs3-devel .
+
+
+
+  
