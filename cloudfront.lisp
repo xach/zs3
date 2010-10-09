@@ -149,6 +149,9 @@ distribution request error responses.")
    (cnames
     :initarg :cnames
     :accessor cnames)
+   (default-root-object
+    :initarg :default-root-object
+    :accessor default-root-object)
    (comment
     :initarg :comment
     :initform nil
@@ -197,7 +200,7 @@ distribution request error responses.")
 (defun distribution-document (distribution)
   (cxml:with-xml-output (cxml:make-string-sink)
     (cxml:with-element "DistributionConfig"
-      (cxml:attribute "xmlns" "http://cloudfront.amazonaws.com/doc/2008-06-30/")
+      (cxml:attribute "xmlns" "http://cloudfront.amazonaws.com/doc/2010-08-01/")
       (cxml:with-element "Origin"
         (cxml:text (origin-bucket distribution)))
       (cxml:with-element "CallerReference"
@@ -211,7 +214,10 @@ distribution request error responses.")
       (cxml:with-element "Enabled"
         (cxml:text (if (enabledp distribution)
                        "true"
-                       "false"))))))
+                       "false")))
+      (cxml:with-element "DefaultRootObject"
+        (when (default-root-object distribution)
+          (cxml:text (default-root-object distribution)))))))
 
 (defun distribution-request-headers (distribution)
   (let* ((date (http-date-string))
@@ -255,7 +261,9 @@ distribution request error responses.")
     (sequence :cnames
      ("CNAME" (bind :cname)))
     (optional ("Comment" (bind :comment)))
-    ("Enabled" (bind :enabled))))
+    ("Enabled" (bind :enabled))
+    (optional
+     ("DefaultRootObject" (bind :default-root-object)))))
 
 (defparameter *distribution-form*
   `("Distribution"
@@ -282,6 +290,7 @@ distribution request error responses.")
                    :cnames (mapcar (lambda (b) (bvalue :cname b))
                                    (bvalue :cnames bindings))
                    :comment (bvalue :comment bindings)
+                   :default-root-object (bvalue :default-root-object bindings)
                    :enabledp (equal (bvalue :enabled bindings) "true")
                    :last-modified (and timestamp
                                        (parse-amazon-timestamp timestamp)))))

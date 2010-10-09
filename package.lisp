@@ -126,6 +126,7 @@
            #:origin-bucket
            #:domain-name
            #:cnames
+           #:default-root-object
            #:enabledp
            #:comment
            ;; Queries & updates
