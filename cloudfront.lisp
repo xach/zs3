@@ -156,6 +156,14 @@ distribution request error responses.")
     :initarg :comment
     :initform nil
     :accessor comment)
+   (logging-bucket
+    :initarg :logging-bucket
+    :initform nil
+    :accessor logging-bucket)
+   (logging-prefix
+    :initarg :logging-prefix
+    :initform nil
+    :accessor logging-prefix)
    (id
     :initarg :id
     :accessor id
@@ -217,7 +225,13 @@ distribution request error responses.")
                        "false")))
       (cxml:with-element "DefaultRootObject"
         (when (default-root-object distribution)
-          (cxml:text (default-root-object distribution)))))))
+          (cxml:text (default-root-object distribution))))
+      (let ((logging-bucket (logging-bucket distribution))
+            (logging-prefix (logging-prefix distribution)))
+        (when (and logging-bucket logging-prefix)
+          (cxml:with-element "Logging"
+            (cxml:with-element "Bucket" (cxml:text logging-bucket))
+            (cxml:with-element "Prefix" (cxml:text logging-prefix))))))))
 
 (defun distribution-request-headers (distribution)
   (let* ((date (http-date-string))
@@ -263,6 +277,10 @@ distribution request error responses.")
     (optional ("Comment" (bind :comment)))
     ("Enabled" (bind :enabled))
     (optional
+     ("Logging"
+      ("Bucket" (bind :logging-bucket))
+      ("Prefix" (bind :logging-prefix))))
+    (optional
      ("DefaultRootObject" (bind :default-root-object)))))
 
 (defparameter *distribution-form*
@@ -290,6 +308,8 @@ distribution request error responses.")
                    :cnames (mapcar (lambda (b) (bvalue :cname b))
                                    (bvalue :cnames bindings))
                    :comment (bvalue :comment bindings)
+                   :logging-bucket (bvalue :logging-bucket bindings)
+                   :logging-prefix (bvalue :logging-prefix bindings)
                    :default-root-object (bvalue :default-root-object bindings)
                    :enabledp (equal (bvalue :enabled bindings) "true")
                    :last-modified (and timestamp
@@ -326,6 +346,9 @@ not retry in the event of an etag match problem."
     (sync enabledp)
     (sync cnames)
     (sync comment)
+    (sync default-root-object)
+    (sync logging-bucket)
+    (sync logging-prefix)
     (sync domain-name)
     (sync status)
     (sync last-modified))

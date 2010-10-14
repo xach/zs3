@@ -127,6 +127,8 @@
            #:domain-name
            #:cnames
            #:default-root-object
+           #:logging-bucket
+           #:logging-prefix
            #:enabledp
            #:comment
            ;; Queries & updates
