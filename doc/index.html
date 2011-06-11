@@ -48,35 +48,24 @@
  <p>ZS3 depends on the following libraries:
 
    <ul>
-     <li> <a href="http://common-lisp.net/project/cxml/">Closure XML</a> (<a href='http://cliki.net/cxml?download'>download</a>) 
-     <li> <a href="http://weitz.de/drakma/">Drakma</a> <b>1.0.0 or newer</b> (<a href='http://cliki.net/Drakma?download'>download</a>)
-     <li> <a href="http://method-combination.net/lisp/ironclad/">Ironclad</a> (<a href='http://cliki.net/ironclad?download'>download</a>)
-     <li> <a href="http://files.b9.com/cl-base64/">cl-base64</a> (<a href='http://cliki.net/cl-base64?download'>download</a>)
-     <li> <a href="http://puri.b9.com/">Puri</a> (<a href='http://cliki.net/puri?download'>download</a>)
+     <li> <a href="http://common-lisp.net/project/cxml/">Closure XML</a>
+     <li> <a href="http://weitz.de/drakma/">Drakma</a> <b>1.0.0 or newer</b>
+     <li> <a href="http://method-combination.net/lisp/ironclad/">Ironclad</a>
+     <li> <a href="http://files.b9.com/cl-base64/">cl-base64</a>
+     <li> <a href="http://puri.b9.com/">Puri</a>
    </ul>
 
- <p>Those libraries additionally depend on:
-   <ul>
-     <li> <a href="http://common-lisp.net/project/alexandria/">Alexandria</a> (<a href='http://cliki.net/alexandria?download'>download</a>)
-     <li> <a href="http://common-lisp.net/project/babel/">Babel</a> (<a href='http://cliki.net/babel?download'>download</a>)
-     <li> <a href="http://common-lisp.net/project/cffi/">CFFI</a> (<a href='http://cliki.net/cffi?download'>download</a>)
-     <li> <a href="http://weitz.de/chunga/">Chunga</a> (<a href='http://cliki.net/chunga?download'>download</a>)
-     <li> <a href="http://common-lisp.net/project/cl-plus-ssl/">CL+SSL</a> (<a href='http://cliki.net/cl+ssl?download'>download</a>)
-     <li> <a href="http://www.cliki.net/closure-common">closure-common</a> (<a href='http://cliki.net/closure-common?download'>download</a>)
-     <li> <a href="http://weitz.de/flexi-streams/">FLEXI-STREAMS</a> (<a href='http://cliki.net/flexi-streams?download'>download</a>)
-     <li> <a href="http://www.cliki.net/trivial-features">trivial-features</a> (<a href='http://cliki.net/trivial-features?download'>download</a>)
-     <li> <a href="http://www.cliki.net/trivial-gray-streams">trivial-gray-streams</a> (<a href='http://cliki.net/trivial-gray-streams?download'>download</a>)
-     <li> <a href="http://www.cliki.net/usocket">usocket</a> (<a href='http://cliki.net/usocket?download'>download</a>)
-   </ul>
+ <p>The easiest way to install ZS3 and all its required libraries is
+ with <A href="http://www.quicklisp.org/">Quicklisp</a>. After
+ Quicklisp is installed, the following will fetch and load ZS3:
 
- <p>If you
-   have <a href="http://cliki.net/asdf-install">asdf-install</a>, you
-   can use <code>(asdf-install:install 'zs3)</code>, which will fetch
-   and load all the dependencies listed above.
+<pre>
+    (ql:quickload "zs3")
+</pre>
 
  <p>For more information about incorporating ASDF-using libraries like
    ZS3 into your own projects,
-   see <a href="http://xach.livejournal.com/130040.html">this short
+   see <a href="http://xach.livejournal.com/278047.html">this short
    tutorial</a>.
    
 
