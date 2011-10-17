@@ -246,14 +246,14 @@ process an XML source."
     (t (cxml:make-source source))))
 
 (defun make-binder (form)
-  (lambda (source)
-    (let ((binder (create-binder form (create-bindings-returner)))
-          (source (xml-source source)))
-      (skip-document-start source)
-      (funcall binder
-               source
-               nil
-               (create-bindings-returner)))))
+  (let ((binder (create-binder form (create-bindings-returner))))
+    (lambda (source)
+      (let ((source (xml-source source)))
+        (skip-document-start source)
+        (funcall binder
+                 source
+                 nil
+                 (create-bindings-returner))))))
 
 (defun xml-bind (binder source)
   (funcall binder source))
