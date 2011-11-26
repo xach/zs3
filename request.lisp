@@ -189,11 +189,7 @@
           (write-string (url-encode (name (key request))) stream))
         (when (sub-resource request)
           (write-string "?" stream)
-          (write-string (url-encode (sub-resource request)) stream))
-        (when (parameters request)
-          (write-string "?" stream)
-          (write-string (alist-to-url-encoded-string (parameters request))
-                        stream))))))
+          (write-string (url-encode (sub-resource request)) stream))))))
 
 (defgeneric all-amazon-headers (request)
   (:method (request)
@@ -281,6 +277,7 @@
                                 :method (method request)
                                 :force-binary t
                                 :content-length (content-length request)
+                                :parameters (parameters request)
                                 :content :continuation)))
       (let ((content (content request)))
         (if (pathnamep content)
