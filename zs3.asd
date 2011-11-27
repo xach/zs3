@@ -33,7 +33,7 @@
                #:ironclad
                #:puri
                #:cl-base64)
-  :version "1.1.5"
+           :version "1.1.6"
   :serial t
   :components ((:file "package")
                (:file "utils")
