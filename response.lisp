@@ -109,8 +109,10 @@
                           :http-code code
                           :http-phrase phrase
                           :http-headers headers)))
-      (with-open-stream (stream stream)
-        (funcall handler response)))))
+      (if (eq handler #'identity-handler)
+          (funcall handler response)
+          (with-open-stream (stream stream)
+            (funcall handler response))))))
 
 (defun submit-request (request &key body-stream (handler 'specialize-response))
   (loop
