@@ -88,14 +88,14 @@
   (gethash amazon-code *specific-errors* 'request-error))
 
 (defgeneric signal-specific-error (response condition-name)
-  (:method (response condition-name)
+  (:method (response (condition-name t))
     (error 'request-error
            :request (request response)
            :response response
            :data (error-data response))))
 
 (defgeneric maybe-signal-error (response)
-  (:method (response)
+  (:method ((response t))
     t)
   (:method ((response amazon-error))
     (signal-specific-error response (specific-error (code response)))))
