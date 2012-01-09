@@ -922,6 +922,9 @@ bucket with the given name.
     possible to produce a subsequence of the object's octets that are
     not valid in the desired encoding.
 
+    <p>If <var>output</var> is <code class='lw'>:STREAM</code> an
+    input stream to the object is returned.
+
     <p>If <var>output</var> is a string or pathname, the object's
     octets are saved to a file identified by the string or
     pathname. The <var>if-exists</var> argument is passed
