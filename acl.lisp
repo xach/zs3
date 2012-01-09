@@ -53,7 +53,7 @@
 
 (defclass acl-person (person) ())
 
-(defmethod slot-unbound (class (object acl-person) (slot (eql 'display-name)))
+(defmethod slot-unbound ((class t) (object acl-person) (slot (eql 'display-name)))
   (setf (display-name object) (id object)))
 
 (defclass acl-email ()
@@ -73,7 +73,7 @@
     :initarg :uri
     :accessor uri)))
 
-(defmethod slot-unbound (class (group acl-group) (slot (eql 'label)))
+(defmethod slot-unbound ((class t) (group acl-group) (slot (eql 'label)))
   (setf (label group) (uri group)))
 
 (defmethod print-object ((group acl-group) stream)
