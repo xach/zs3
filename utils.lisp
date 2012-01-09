@@ -50,7 +50,7 @@
 
 (defun iso8601-date-string (&optional (time (get-universal-time)))
   "Return a HTTP-style date string."
-  (multiple-value-bind (second minute hour day month year day-of-week)
+  (multiple-value-bind (second minute hour day month year)
       (decode-universal-time time 0)
     (let ((*print-pretty* nil))
       (format nil "~4,'0D-~2,'0D-~2,'0DT~2,'0D:~2,'0D:~2,'0DZ"
