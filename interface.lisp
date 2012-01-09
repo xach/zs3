@@ -166,6 +166,11 @@ constraint."
            (setf response (specialize-response response))
            (maybe-signal-error response)))))
 
+(defun identity-handler (response)
+  "Just returns the response without modification after checking for success"
+  (check-request-success response)
+  response)
+
 (defun make-file-writer-handler (file &key (if-exists :supersede))
   (lambda (response)
     (check-request-success response)
@@ -231,12 +236,14 @@ constraint."
                           'vector-writer-handler)
                          ((eql output :string)
                           (make-string-writer-handler string-external-format))
+                         ((eql output :stream)
+                          #'identity-handler)
                          ((or (stringp output)
                               (pathnamep output))
                           (make-file-writer-handler output :if-exists if-exists))
                          (t
                           (error "Unknown ~S option ~S -- should be ~
-                                :VECTOR, :STRING, or a pathname"
+                                :VECTOR, :STRING, :STREAM, or a pathname"
                                  :output output)))))
       (catch 'not-modified
         (handler-case 

@@ -72,7 +72,7 @@
     (gethash name *response-element-classes*)))
 
 (defgeneric specialized-initialize (object source)
-  (:method (object source)
+  (:method (object (source t))
     object))
 
 (defgeneric content-length (response)
@@ -109,8 +109,11 @@
                           :http-code code
                           :http-phrase phrase
                           :http-headers headers)))
-      (with-open-stream (stream stream)
-        (funcall handler response)))))
+      (if (eq handler #'identity-handler)
+          (funcall handler response)
+          (with-open-stream (stream stream)
+            (declare (ignore stream))
+            (funcall handler response))))))
 
 (defun submit-request (request &key body-stream (handler 'specialize-response))
   (loop
