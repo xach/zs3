@@ -60,11 +60,11 @@ request.")
 
 (defclass lazy-credentials-mixin () ())
 
-(defmethod slot-unbound (class (credentials lazy-credentials-mixin)
+(defmethod slot-unbound ((class t) (credentials lazy-credentials-mixin)
                          (slot (eql 'access-key)))
   (nth-value 0 (initialize-lazy-credentials credentials)))
 
-(defmethod slot-unbound (class (credentials lazy-credentials-mixin)
+(defmethod slot-unbound ((class t) (credentials lazy-credentials-mixin)
                          (slot (eql 'secret-key)))
   (nth-value 1 (initialize-lazy-credentials credentials)))
 
