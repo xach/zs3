@@ -244,7 +244,7 @@ constraint."
                           (make-file-writer-handler output :if-exists if-exists))
                          (t
                           (error "Unknown ~S option ~S -- should be ~
-                                :VECTOR, :STRING, or a pathname"
+                                  :VECTOR, :STRING, :STREAM, or a pathname"
                                  :output output)))))
       (catch 'not-modified
         (handler-case
