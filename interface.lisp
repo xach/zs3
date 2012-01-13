@@ -459,14 +459,25 @@ constraint."
                                  :bucket bucket
                                  :key key)))
 
+(defun bulk-delete-document (keys)
+  (cxml:with-xml-output (cxml:make-octet-vector-sink)
+    (cxml:with-element "Delete"
+      (dolist (key keys)
+        (cxml:with-element "Object"
+          (cxml:with-element "Key"
+            (cxml:text key)))))))
+
 (defun delete-objects (bucket keys &key
                        ((:credentials *credentials*) *credentials*))
   "Delete the objects in BUCKET identified by KEYS."
-  (map nil
-       (lambda (key)
-         (delete-object bucket key))
-       keys)
-  (length keys))
+  (let* ((content (bulk-delete-document keys))
+         (md5 (vector-md5/b64 content)))
+    (submit-request (make-instance 'request
+                                   :method :post
+                                   :sub-resource "delete"
+                                   :bucket bucket
+                                   :content content
+                                   :content-md5 md5))))
 
 (defun delete-all-objects (bucket &key
                            ((:credentials *credentials*) *credentials*))
