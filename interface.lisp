@@ -710,7 +710,7 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
   (format nil "~D" (expires request)))
 
 (defun resource-url (&key bucket key vhost ssl sub-resource)
-  (case vhost
+  (ecase vhost
     (:cname
      (format nil "http~@[s~*~]://~A/~@[~A~]~@[?~A~]"
              ssl bucket (url-encode key) sub-resource))
