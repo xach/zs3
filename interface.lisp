@@ -186,6 +186,10 @@ constraint."
             buffer))
     response))
 
+(defun stream-identity-handler (response)
+  (check-request-success response)
+  response)
+
 (defun make-string-writer-handler (external-format)
   (lambda (response)
     (setf response (vector-writer-handler response))
@@ -193,6 +197,8 @@ constraint."
           (flexi-streams:octets-to-string (body response)
                                     :external-format external-format))
     response))
+
+
 
 (defun get-object (bucket key &key
                    when-modified-since
@@ -231,6 +237,8 @@ constraint."
                           'vector-writer-handler)
                          ((eql output :string)
                           (make-string-writer-handler string-external-format))
+                         ((eql output :stream)
+                          'stream-identity-handler)
                          ((or (stringp output)
                               (pathnamep output))
                           (make-file-writer-handler output :if-exists if-exists))
@@ -241,6 +249,7 @@ constraint."
       (catch 'not-modified
         (handler-case
             (let ((response (submit-request request
+                                            :keep-stream (eql output :stream)
                                             :body-stream t
                                             :handler handler)))
               (values (body response) (http-headers response)))

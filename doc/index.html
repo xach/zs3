@@ -929,6 +929,9 @@ bucket with the given name.
     output file already exists. It defaults
     to <code class='kw'>:SUPERSEDE</code>.
 
+    <p>If <var>output</var> is <code class='kw'>:STREAM</code>, a
+    stream is returned from which the object's contents may be read.
+
     <p><var>start</var> marks the first index fetched from the
     object's data. <var>end</var> specifies the index after the last
     octet fetched. If start is NIL, it defaults to 0. If end is nil,

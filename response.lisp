@@ -96,6 +96,7 @@
 
 (defun request-response (request &key
                          body-stream
+                         keep-stream
                          (handler 'specialize-response))
   (setf (endpoint request) (redirected-endpoint (endpoint request)
                                                 (bucket request)))
@@ -109,13 +110,18 @@
                           :http-code code
                           :http-phrase phrase
                           :http-headers headers)))
-      (with-open-stream (stream stream)
-        (funcall handler response)))))
+      (if keep-stream
+          (funcall handler response)
+          (with-open-stream (stream stream)
+            (funcall handler response))))))
 
-(defun submit-request (request &key body-stream (handler 'specialize-response))
+(defun submit-request (request
+                       &key body-stream keep-stream
+                       (handler 'specialize-response))
   (loop
    (handler-case
        (let ((response (request-response request
+                                         :keep-stream keep-stream
                                          :body-stream body-stream
                                          :handler handler)))
          (maybe-signal-error response)
