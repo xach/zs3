@@ -63,7 +63,7 @@ the object specified by the optional BUCKET and KEY arguments."
                                         :bucket bucket
                                         :key key
                                         :parameters parameters))))
-                                                                                
+
     (values (http-headers response)
             (http-code response)
             (http-phrase response))))
@@ -193,7 +193,7 @@ constraint."
           (flexi-streams:octets-to-string (body response)
                                     :external-format external-format))
     response))
-    
+
 (defun get-object (bucket key &key
                    when-modified-since
                    unless-modified-since
@@ -239,7 +239,7 @@ constraint."
                                 :VECTOR, :STRING, or a pathname"
                                  :output output)))))
       (catch 'not-modified
-        (handler-case 
+        (handler-case
             (let ((response (submit-request request
                                             :body-stream t
                                             :handler handler)))
@@ -248,7 +248,7 @@ constraint."
             (throw 'not-modified
               (values nil
                       (http-headers (request-error-response c))))))))))
-                                
+
 (defun get-vector (bucket key
                    &key start end
                    when-modified-since unless-modified-since
@@ -339,7 +339,7 @@ constraint."
                                    :content-type content-type
                                    :content-length content-length
                                    :content content))))
-            
+
 
 (defun put-vector (vector bucket key &key
                    start end
@@ -371,7 +371,7 @@ constraint."
                    metadata
                    (external-format :utf-8)
                    cache-control
-                   content-encoding 
+                   content-encoding
                    content-disposition
                    (content-type "text/plain")
                    expires
@@ -583,7 +583,7 @@ users. Otherwise, a default ACL is present on the new object.
                                  :sub-resource "acl"
                                  :content (acl-serialize acl))))
   (submit-request request)))
-                 
+
 
 (defun make-public (&key bucket key
                     ((:credentials *credentials*) *credentials*))
@@ -635,7 +635,7 @@ delivery group."
                               (acl-eqv (grantee grant) *log-delivery*))
                             grants))
     (put-acl owner grants :bucket bucket)))
-  
+
 (defun enable-logging (bucket target-bucket target-prefix &key
                        target-grants
                        ((:credentials *credentials*) *credentials*))
@@ -652,7 +652,7 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
                                  :content (log-serialize setup)))
          (retried nil))
     (loop
-     (handler-case 
+     (handler-case
          (return (submit-request request))
        (invalid-logging-target (condition)
          (when (starts-with "You must give the log-delivery group"
