@@ -467,17 +467,39 @@ constraint."
           (cxml:with-element "Key"
             (cxml:text key)))))))
 
+(defparameter *delete-objects-binder*
+  (make-binder '("DeleteResult"
+                 (sequence :results
+                  (alternate
+                   ("Deleted"
+                    ("Key" (bind :deleted-key)))
+                   ("Error"
+                    ("Key" (bind :error-key))
+                    ("Code" (bind :error-code))
+                    ("Message" (bind :error-message))))))))
+
 (defun delete-objects (bucket keys &key
                        ((:credentials *credentials*) *credentials*))
-  "Delete the objects in BUCKET identified by KEYS."
+  "Delete the objects in BUCKET identified by the sequence KEYS."
+  (unless (<= (length keys) 1000)
+    (error "Can only delete 1000 objects per request."))
   (let* ((content (bulk-delete-document keys))
          (md5 (vector-md5/b64 content)))
-    (submit-request (make-instance 'request
-                                   :method :post
-                                   :sub-resource "delete"
-                                   :bucket bucket
-                                   :content content
-                                   :content-md5 md5))))
+    (let* ((response
+            (submit-request (make-instance 'request
+                                           :method :post
+                                           :sub-resource "delete"
+                                           :bucket bucket
+                                           :content content
+                                           :content-md5 md5)))
+           (bindings (xml-bind *delete-objects-binder* (body response)))
+           (results (bvalue :results bindings))
+           (deleted 0)
+           (failed '()))
+      (dolist (result results (values deleted failed))
+        (if (bvalue :deleted-key result)
+            (incf deleted)
+            (push result failed))))))
 
 (defun delete-all-objects (bucket &key
                            ((:credentials *credentials*) *credentials*))
