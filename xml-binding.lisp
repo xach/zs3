@@ -74,7 +74,7 @@ alist of element names and their character contents."
 
 ;;; Match failure conditions
 
-(define-condition xml-binding-error ()
+(define-condition xml-binding-error (error)
   ((expected
     :initarg :expected
     :accessor expected)
