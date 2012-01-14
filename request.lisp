@@ -126,10 +126,10 @@
    :amz-headers nil
    :extra-http-headers nil))
 
-(defmethod slot-unbound (class (request request) (slot (eql 'date)))
+(defmethod slot-unbound ((class t) (request request) (slot (eql 'date)))
   (setf (date request) (get-universal-time)))
 
-(defmethod slot-unbound (class (request request) (slot (eql 'content-md5)))
+(defmethod slot-unbound ((class t) (request request) (slot (eql 'content-md5)))
   (setf (content-md5 request)
         (and *use-content-md5*
              (pathnamep (content request))

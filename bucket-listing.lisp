@@ -141,7 +141,7 @@
 (defun key-binding-key (binding)
   (alist-bind (key
                last-modified etag size
-               owner-id owner-display-name storage-class)
+               owner-id owner-display-name)
       binding
     (make-instance 'key
                    :name key

@@ -72,7 +72,7 @@
     (gethash name *response-element-classes*)))
 
 (defgeneric specialized-initialize (object source)
-  (:method (object source)
+  (:method (object (source t))
     object))
 
 (defgeneric content-length (response)
@@ -113,6 +113,7 @@
       (if keep-stream
           (funcall handler response)
           (with-open-stream (stream stream)
+            (declare (ignore stream))
             (funcall handler response))))))
 
 (defun submit-request (request
