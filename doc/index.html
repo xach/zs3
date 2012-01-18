@@ -1351,12 +1351,15 @@ calling:
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>deleted-count</var>, <var>errors</var></span>
   </div>
 
   <blockquote class='description'>
     <p>Deletes <var>keys</var>, which should be a sequence of keys,
-    from <var>bucket</var>.
+    from <var>bucket</var>. The primary value is the number of objects
+    deleted. The secondary value is a list of error plists; if there
+    are no errors deleting any of the keys, the secondary value is
+    NIL.
   </blockquote>
 </div>
 
