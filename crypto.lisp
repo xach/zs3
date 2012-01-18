@@ -79,6 +79,10 @@
 (defun file-md5/hex (file)
   (ironclad:byte-array-to-hex-string (file-md5 file)))
 
+(defun vector-md5/b64 (vector)
+  (base64:usb8-array-to-base64-string
+   (ironclad:digest-sequence :md5 vector)))
+
 (defun file-etag (file)
   (format nil "\"~A\"" (file-md5/hex file)))
 

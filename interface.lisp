@@ -459,14 +459,56 @@ constraint."
                                  :bucket bucket
                                  :key key)))
 
+(defun bulk-delete-document (keys)
+  (cxml:with-xml-output (cxml:make-octet-vector-sink)
+    (cxml:with-element "Delete"
+      (dolist (key keys)
+        (cxml:with-element "Object"
+          (cxml:with-element "Key"
+            (cxml:text key)))))))
+
+(defparameter *delete-objects-binder*
+  (make-binder '("DeleteResult"
+                 (sequence :results
+                  (alternate
+                   ("Deleted"
+                    ("Key" (bind :deleted-key)))
+                   ("Error"
+                    ("Key" (bind :error-key))
+                    ("Code" (bind :error-code))
+                    ("Message" (bind :error-message))))))))
+
 (defun delete-objects (bucket keys &key
                        ((:credentials *credentials*) *credentials*))
-  "Delete the objects in BUCKET identified by KEYS."
-  (map nil
-       (lambda (key)
-         (delete-object bucket key))
-       keys)
-  (length keys))
+  "Delete the objects in BUCKET identified by the sequence KEYS."
+  (let ((deleted 0)
+        (failed '())
+        (subseqs (floor (length keys) 1000)))
+    (flet ((bulk-delete (keys)
+             (unless (<= (length keys) 1000)
+               (error "Can only delete 1000 objects per request."))
+             (let* ((content (bulk-delete-document keys))
+                    (md5 (vector-md5/b64 content)))
+               (let* ((response
+                       (submit-request (make-instance 'request
+                                                      :method :post
+                                                      :sub-resource "delete"
+                                                      :bucket bucket
+                                                      :content content
+                                                      :content-md5 md5)))
+                      (bindings (xml-bind *delete-objects-binder*
+                                          (body response)))
+                      (results (bvalue :results bindings)))
+                 (dolist (result results (values deleted failed))
+                   (if (bvalue :deleted-key result)
+                       (incf deleted)
+                       (push result failed)))))))
+      (loop for start from 0 by 1000
+              for end = (+ start 1000)
+              repeat subseqs do
+              (bulk-delete (subseq keys start end)))
+        (bulk-delete (subseq keys (* subseqs 1000)))
+        (values deleted failed))))
 
 (defun delete-all-objects (bucket &key
                            ((:credentials *credentials*) *credentials*))

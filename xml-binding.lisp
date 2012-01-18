@@ -74,7 +74,7 @@ alist of element names and their character contents."
 
 ;;; Match failure conditions
 
-(define-condition xml-binding-error ()
+(define-condition xml-binding-error (error)
   ((expected
     :initarg :expected
     :accessor expected)
@@ -164,25 +164,31 @@ effectively ending matching."
     (declare (ignore source k))
     (nreverse bindings)))
 
+(defmacro catching-xml-errors (&body body)
+  `(handler-case
+       (progn ,@body)
+     (xml-binding-error (c)
+       (values nil c))))
+
 (defun create-sequence-binder (key forms kk)
   "Return a function that creates a list of sub-bindings based on a
 sub-matcher, with KEY as the key."
-  (let ((binder (create-binder forms (create-bindings-returner)))
-        (element-name (first forms)))
+  (let ((binder (create-binder forms (create-bindings-returner))))
     (lambda (source bindings k)
       (let ((sub-bindings '()))
         (loop
-         (skip-characters source)
-         (multiple-value-bind (type uri lname)
-             (klacks:peek source)
-           (declare (ignore uri))
-           (unless (and (eql type :start-element)
-                        (string= lname element-name))
-             (return (funcall kk source (acons key
-                                               (nreverse sub-bindings)
-                                               bindings)
-                              k))))
-         (push (funcall binder source nil k) sub-bindings))))))
+          (skip-characters source)
+          (multiple-value-bind (sub-binding failure)
+              (catching-xml-errors
+                (funcall binder source nil k))
+            (if failure
+                (return (funcall kk
+                                 source
+                                 (acons key
+                                        (nreverse sub-bindings)
+                                        bindings)
+                                 k))
+                (push sub-binding sub-bindings))))))))
 
 (defun create-alist-binder (key kk)
   "Return a function that returns the rest of SOURCE as an alist of
@@ -193,26 +199,32 @@ element-name/element-content data."
              k)))
 
 (defun create-optional-binder (subforms kk)
-  (let ((binder (create-binder subforms kk))
-        (element-name (first subforms)))
+  (let ((binder (create-binder subforms kk)))
     (lambda (source bindings k)
       (skip-characters source)
-      (multiple-value-bind (type uri lname)
-          (klacks:peek source)
-        (declare (ignore uri))
-        (cond ((and (eql type :start-element)
-                    (string= element-name lname))
-               (funcall binder
-                        source
-                        bindings
-                        k))
-              (t (funcall kk source bindings k)))))))
-                        
+      (multiple-value-bind (optional-bindings failure)
+          (catching-xml-errors (funcall binder source bindings k))
+        (if failure
+            (funcall kk source bindings k)
+            optional-bindings)))))
+
+(defun create-alternate-binder (subforms kk)
+  (let ((binders (mapcar (lambda (form) (create-binder form kk)) subforms)))
+    (lambda (source bindings k)
+      ;; FIXME: This xml-binding-error needs :expected and :action
+      ;; ooptions. Can get actual with peeking and expected by getting
+      ;; the cl:cars of subforms...maybe.
+      (dolist (binder binders (error 'xml-binding-error))
+        (multiple-value-bind (alt-bindings failure)
+            (catching-xml-errors (funcall binder source bindings k))
+          (unless failure
+            (return alt-bindings)))))))
 
 (defun create-special-processor (operator form k)
   "Handle special pattern processing forms like BIND, SKIP-REST, SEQUENCE,
 etc."
   (ecase operator
+    (alternate (create-alternate-binder (rest form) k))
     (bind (create-bindings-extender (second form) k))
     (optional (create-optional-binder (second form) k))
     (skip-rest (create-skipper *current-element-name* k))
@@ -257,6 +269,15 @@ process an XML source."
 
 (defun xml-bind (binder source)
   (funcall binder source))
+
+(defun try-to-xml-bind (binder source)
+  "Like XML-BIND, but catches any XML-BINDING-ERRORs; if any errors
+  are caught, NIL is the primary value and the error object is the
+  secondary value."
+  (handler-case
+      (xml-bind binder source)
+    (xml-binding-error (c)
+      (values nil c))))
 
 (defun xml-document-element (source)
   (nth-value 2 (klacks:find-event (xml-source source) :start-element)))
