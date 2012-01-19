@@ -141,7 +141,8 @@
 (defun key-binding-key (binding)
   (alist-bind (key
                last-modified etag size
-               owner-id owner-display-name)
+               owner-id owner-display-name
+               storage-class)
       binding
     (make-instance 'key
                    :name key
@@ -151,7 +152,8 @@
                    :owner (when owner-id
                             (make-instance 'person
                                            :id owner-id
-                                           :display-name owner-display-name)))))
+                                           :display-name owner-display-name))
+                   :storage-class storage-class)))
 
 (defmethod specialized-initialize ((response bucket-listing) source)
   (let* ((bindings (xml-bind *list-bucket-binder* source))

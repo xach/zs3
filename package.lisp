@@ -57,7 +57,8 @@
            #:last-modified
            #:etag
            #:size
-           #:owner)
+           #:owner
+           #:storage-class)
   ;; Objects
   (:export #:get-object
            #:get-vector
@@ -72,7 +73,8 @@
            #:delete-object
            #:delete-objects
            #:delete-all-objects
-           #:object-metadata)
+           #:object-metadata
+           #:set-storage-class)
   ;; Access Control
   (:export #:get-acl
            #:put-acl

@@ -71,7 +71,10 @@
     :accessor size)
    (owner
     :initarg :owner
-    :accessor owner)))
+    :accessor owner)
+   (storage-class
+    :initarg :storage-class
+    :accessor storage-class)))
 
 (defmethod print-object ((key key) stream)
   (print-unreadable-object (key stream :type t)

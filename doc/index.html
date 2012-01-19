@@ -438,7 +438,8 @@ ZS3.
       <a href='#size'><tt>SIZE</tt></a>,
       <a href='#etag'><tt>ETAG</tt></a>,
       <a href='#last-modified'><tt>LAST-MODIFIED</tt></a>,
-      and <a href='#owner'><tt>OWNER</tt></a>.
+      <a href='#owner'><tt>OWNER</tt>, and
+      <a href='#storage-class'><tt>STORAGE-CLASS</tt></a></a>.
 
     <p>This function is built
       on <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a> and may
@@ -875,6 +876,23 @@ bucket with the given name.
 </div>
 
 
+<div class='item'>
+  <div class='type'><a name='storage-class'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>storage-class</code>
+    <span class='args'>
+      <var>key-object</var>
+    </span>
+    <span class='result'>=> <var>storage-class</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the storage class of <var>key-object</var>.
+  </blockquote>
+</div>
+
+
+
 
 
 <a name='object-ops'><h3>Operations on Objects</h3></a>
@@ -1057,6 +1075,7 @@ bucket with the given name.
       <var>content-disposition</var>
       <var>content-type</var>
       <var>expires</var>
+      <var>storage-class</var>
       <var>credentials</var>
     </span>
     <span class='result'>=> |</span>
@@ -1113,7 +1132,14 @@ bucket with the given name.
     GET or HEAD requests. If <i>content-type</i> is not set, it
     defaults to "binary/octet-stream". The others default to
     NIL. If <i>expires</i> is provided, it should be a universal time.
-  </blockquote>
+
+    <p>If provided, <var>storage-class</var> should refer to one of
+    the standard storage classes available for S3; currently the
+    accepted values are the strings "STANDARD" and
+    "REDUCED_REDUNDANCY". Using other values may trigger an API error
+    from S3. For more information about reduced redundancy storage,
+    see <a href="http://docs.amazonwebservices.com/AmazonS3/latest/dev/Introduction.html#RRS">Reduced
+    Redundancy Storage</a> in the Developer Guide.
 </div>
 
 <div class='item'>
@@ -1131,6 +1157,7 @@ bucket with the given name.
       <var>content-encoding</var>
       <var>content-type</var>
       <var>expires</var>
+      <var>storage-class</var>
       <var>credentials</var>
     </span>
     <span class='result'>=> |</span>
@@ -1166,6 +1193,7 @@ bucket with the given name.
       <var>content-encoding</var>
       <var>content-type</var>
       <var>expires</var>
+      <var>storage-class</var>
       <var>credentials</var>
     </span>
     <span class='result'>=> |</span>
@@ -1198,6 +1226,7 @@ calling:
       <var>public</var> <var>metadata</var> 
       <var>content-disposition</var> <var>content-encoding</var> <var>content-type</var>
       <var>expires</var>
+      <var>storage-class</var>
       <var>credentials</var>
     </span>
     <span class='result'>=> |</span>
@@ -1238,6 +1267,7 @@ calling:
       <var>public</var> <var>metadata</var> 
       <var>content-disposition</var> <var>content-encoding</var> <var>content-type</var>
       <var>expires</var>
+      <var>storage-class</var>
       <var>credentials</var>
     </span>
     <span class='result'>=> |</span>
@@ -1285,6 +1315,7 @@ calling:
       <var>when-modified-since</var>
       <var>unless-modified-since</var> <br>
       <var>metadata</var> <var>public</var> <var>precondition-errors</var>
+      <var>storage-class</var>
       <var>credentials</var>
     </span>
     <span class='result'>=> |</span>
@@ -1315,6 +1346,14 @@ calling:
     with <a href='#put-object'><tt>PUT-OBJECT</tt></a>. Passing NIL
     means that the new object has no metadata. Otherwise, the metadata
     is copied from the original object.
+
+    <p>If <var>storage-class</var> is provided, it should refer to one
+    of the standard storage classes available for S3; currently the
+    accepted values are the strings "STANDARD" and
+    "REDUCED_REDUNDANCY". Using other values may trigger an API error
+    from S3. For more information about reduced redundancy storage,
+    see <a href="http://docs.amazonwebservices.com/AmazonS3/latest/dev/Introduction.html#RRS">Reduced
+    Redundancy Storage</a> in the Developer Guide.
   </blockquote>
 </div>
 
@@ -1409,6 +1448,36 @@ calling:
 
   </blockquote>
 </div>
+
+<div class='item'>
+  <div class='type'><a name='set-storage-class'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>set-storage-class</code>
+    <span class='args'>
+      <var>bucket</var>
+      <var>key</var>
+      <var>storage-class</var> 
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Sets the storage class of the object identified
+      by <var>bucket</var> and <var>key</var>
+      to <var>storage-class</var>. This is a convenience function that
+      uses <a href='#copy-object'><tt>COPY-OBJECT</tt></a> to make
+      storage class changes.
+
+    <p>The storage class of an object can be determined by querying
+      the bucket with <a href='#all-keys'><tt>ALL-KEYS</tt></a>
+      or <a href='#query-bucket'><tt>QUERY-BUCKET</tt></a> and
+      using <a href='#storage-class'><tt>STORAGE-CLASS</tt></a> on one
+      of the resulting key objects.
+  </blockquote>
+</div>
+
 
 
 <a name='access-control'><h3>Access Control</h3></a>

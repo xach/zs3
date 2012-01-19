@@ -322,6 +322,7 @@ constraint."
                    content-disposition
                    expires
                    content-type
+                   (storage-class "STANDARD")
                    ((:credentials *credentials*) *credentials*))
   (let ((content
          (etypecase object
@@ -332,12 +333,16 @@ constraint."
            ((or vector pathname) object)))
         (content-length t)
         (policy-header (access-policy-header access-policy public)))
+    (setf storage-class (or storage-class "STANDARD"))
     (submit-request (make-instance 'request
                                    :method :put
                                    :bucket bucket
                                    :key key
                                    :metadata metadata
-                                   :amz-headers policy-header
+                                   :amz-headers
+                                   (append policy-header
+                                           (list (cons "storage-class"
+                                                       storage-class)))
                                    :extra-http-headers
                                    (parameters-alist
                                     :cache-control cache-control
@@ -360,6 +365,7 @@ constraint."
                    content-disposition
                    (content-type "binary/octet-stream")
                    expires
+                   storage-class
                    ((:credentials *credentials*) *credentials*))
   (when (or start end)
     (setf vector (subseq vector (or start 0) end)))
@@ -371,7 +377,8 @@ constraint."
               :content-encoding content-encoding
               :content-disposition content-disposition
               :content-type content-type
-              :expires expires))
+              :expires expires
+              :storage-class storage-class))
 
 (defun put-string (string bucket key &key
                    start end
@@ -384,6 +391,7 @@ constraint."
                    content-disposition
                    (content-type "text/plain")
                    expires
+                   storage-class
                    ((:credentials *credentials*) *credentials*))
   (when (or start end)
     (setf string (subseq string (or start 0) end)))
@@ -396,7 +404,8 @@ constraint."
               :content-encoding content-encoding
               :content-type content-type
               :cache-control cache-control
-              :string-external-format external-format))
+              :string-external-format external-format
+              :storage-class storage-class))
 
 
 (defun put-file (file bucket key &key
@@ -409,6 +418,7 @@ constraint."
                  content-encoding
                  (content-type "binary/octet-stream")
                  expires
+                 storage-class
                  ((:credentials *credentials*) *credentials*))
   (when (eq key t)
     (setf key (file-namestring file)))
@@ -424,7 +434,8 @@ constraint."
                 :content-disposition content-disposition
                 :content-encoding content-encoding
                 :content-type content-type
-                :expires expires)))
+                :expires expires
+                :storage-class storage-class)))
 
 (defun put-stream (stream bucket key &key
                    (start 0) end
@@ -436,6 +447,7 @@ constraint."
                    content-encoding
                    (content-type "binary/octet-stream")
                    expires
+                   storage-class
                    ((:credentials *credentials*) *credentials*))
   (let ((content (stream-subset-vector stream start end)))
     (put-object content bucket key
@@ -446,7 +458,8 @@ constraint."
                 :content-disposition content-disposition
                 :content-encoding content-encoding
                 :content-type content-type
-                :expires expires)))
+                :expires expires
+                :storage-class storage-class)))
 
 
 ;;; Delete & copy objects
@@ -526,6 +539,7 @@ constraint."
                     access-policy
                     public
                     precondition-errors
+                    (storage-class "STANDARD")
                     ((:credentials *credentials*) *credentials*))
   "Copy the object identified by FROM-BUCKET/FROM-KEY to
 TO-BUCKET/TO-KEY.
@@ -551,8 +565,6 @@ users. Otherwise, a default ACL is present on the new object.
     (error "FROM-BUCKET is required"))
   (unless from-key
     (error "FROM-KEY is required"))
-  (unless (or to-bucket to-key)
-    (error "Can't copy an object to itself."))
   (setf to-bucket (or to-bucket from-bucket))
   (setf to-key (or to-key from-key))
   (handler-bind ((precondition-failed
@@ -564,6 +576,7 @@ users. Otherwise, a default ACL is present on the new object.
            (parameters-alist :copy-source (format nil "~A/~A"
                                                   (url-encode (name from-bucket))
                                                   (url-encode (name from-key)))
+                             :storage-class storage-class
                              :metadata-directive
                              (if metadata-supplied-p "REPLACE" "COPY")
                              :copy-source-if-match when-etag-matches
@@ -599,6 +612,16 @@ users. Otherwise, a default ACL is present on the new object.
               for meta = (metadata-symbol-p k)
               when meta
               collect (cons meta value))))))
+
+
+;;; Convenience bit for storage class
+
+(defun set-storage-class (bucket key storage-class &key
+                          ((:credentials *credentials*) *credentials*))
+  "Set the storage class of the object identified by BUCKET and KEY to
+STORAGE-CLASS."
+  (copy-object :from-bucket bucket :from-key key
+               :storage-class storage-class))
 
 
 ;;; ACL twiddling
@@ -653,7 +676,6 @@ users. Otherwise, a default ACL is present on the new object.
           (remove *all-users* grants
                   :test #'acl-eqv :key #'grantee))
     (put-acl owner grants :bucket bucket :key key)))
-
 
 
 ;;; Logging
