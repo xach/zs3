@@ -588,8 +588,25 @@ bucket with the given name.
 
   <blockquote class='description'>
     <p>Sets the lifecycle configuration of <var>bucket</var> to the
-    list of bucket lifecycle rules <var>rules</var>. To create a
-    bucket lifecycle rule, use <a href='#lifecycle-rule'><tt>LIFECYCLE-RULE</tt></a>.
+    designator for a list of bucket lifecycle rules <var>rules</var>.
+
+    <p>To create a
+    bucket lifecycle rule,
+    use <a href='#lifecycle-rule'><tt>LIFECYCLE-RULE</tt></a>. For
+    example, to automatically delete objects with keys matching a
+    "logs/" prefix after 30 days:
+
+<pre class='code'>
+(setf (bucket-lifecycle "my-bucket") (lifecycle-rule :prefix "logs/" :days 30))
+</pre>
+
+    <p>To delete a bucket's lifecycle configuration, use an empty list
+    of rules, e.g.
+
+<pre class='code'>
+(setf (bucket-lifecycle "my-bucket") nil)
+</pre>
+
   </blockquote>
 </div>
 
