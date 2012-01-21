@@ -54,4 +54,5 @@
                (:file "logging")
                (:file "location")
                (:file "interface")
+               (:file "lifecycle")
                (:file "cloudfront")))
