@@ -49,19 +49,19 @@
     :initarg :setup
     :accessor setup)))
 
-(defparameter *logging-binder*
-  (make-binder '("BucketLoggingStatus"
-                 (optional
-                  ("LoggingEnabled"
-                   ("TargetBucket" (bind :target-bucket))
-                   ("TargetPrefix" (bind :target-prefix))
-                   (optional
-                    ("TargetGrants"
-                     (sequence :target-grants
-                               ("Grant"
-                                ("Grantee"
-                                 (elements-alist :grantee))
-                                ("Permission" (bind :permission)))))))))))
+(defbinder bucket-logging-status
+  ("BucketLoggingStatus"
+   (optional
+    ("LoggingEnabled"
+     ("TargetBucket" (bind :target-bucket))
+     ("TargetPrefix" (bind :target-prefix))
+     (optional
+      ("TargetGrants"
+       (sequence :target-grants
+                 ("Grant"
+                  ("Grantee"
+                   (elements-alist :grantee))
+                  ("Permission" (bind :permission))))))))))
 
 
 (defun bindings-logging-setup (bindings)
@@ -89,7 +89,7 @@
 (set-element-class "BucketLoggingStatus" 'logging)
 
 (defmethod specialized-initialize ((response logging) source)
-  (let ((bindings (xml-bind *logging-binder* source)))
+  (let ((bindings (xml-bind 'bucket-logging-status source)))
     (setf (setup response)
           (bindings-logging-setup bindings))
     response))

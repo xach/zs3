@@ -88,6 +88,44 @@ alist of element names and their character contents."
              (actual condition)))))
 
 
+;;; API
+
+(defvar *binder-definitions*
+  (make-hash-table))
+
+(defclass binder ()
+  ((source
+    :initarg :source
+    :accessor source)
+   (closure
+    :initarg :closure
+    :accessor closure)))
+
+(defmacro defbinder (name &body source)
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (setf (gethash ',name *binder-definitions*)
+           (make-instance 'binder
+                          :closure (make-binder ',@source)
+                          :source ',@source))))
+
+(defun find-binder (name &optional (errorp t))
+  (let ((binder (gethash name *binder-definitions*)))
+    (or binder
+        (and errorp
+             (error "No binder named ~S" name)))))
+
+(defun xml-bind (binder-name source)
+  (funcall (closure (find-binder binder-name)) source))
+
+(defun try-to-xml-bind (binder-name source)
+  "Like XML-BIND, but catches any XML-BINDING-ERRORs; if any errors
+  are caught, NIL is the primary value and the error object is the
+  secondary value."
+  (handler-case
+      (xml-bind binder-name source)
+    (xml-binding-error (c)
+      (values nil c))))
+
 ;;; Creating the matchers/binders
 
 (defvar *current-element-name*)
@@ -220,10 +258,17 @@ element-name/element-content data."
           (unless failure
             (return alt-bindings)))))))
 
+(defun create-sub-binder-binder (binder-name kk)
+  (lambda (source bindings k)
+    (let ((binder (find-binder binder-name)))
+      (let ((sub-bindings (funcall (closure binder) source)))
+        (funcall k source (append sub-bindings bindings) kk)))))
+
 (defun create-special-processor (operator form k)
   "Handle special pattern processing forms like BIND, SKIP-REST, SEQUENCE,
 etc."
   (ecase operator
+    (include (create-sub-binder-binder (second form) k))
     (alternate (create-alternate-binder (rest form) k))
     (bind (create-bindings-extender (second form) k))
     (optional (create-optional-binder (second form) k))
@@ -267,17 +312,7 @@ process an XML source."
                  nil
                  (create-bindings-returner))))))
 
-(defun xml-bind (binder source)
-  (funcall binder source))
 
-(defun try-to-xml-bind (binder source)
-  "Like XML-BIND, but catches any XML-BINDING-ERRORs; if any errors
-  are caught, NIL is the primary value and the error object is the
-  secondary value."
-  (handler-case
-      (xml-bind binder source)
-    (xml-binding-error (c)
-      (values nil c))))
 
 (defun xml-document-element (source)
   (nth-value 2 (klacks:find-event (xml-source source) :start-element)))
@@ -305,4 +340,5 @@ process an XML source."
 
 (defgeneric merge-bindings (object bindings)
   (:documentation "Update OBJECT with the data from BINDINGS."))
+
 

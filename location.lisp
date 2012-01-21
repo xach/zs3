@@ -29,8 +29,8 @@
 
 (in-package #:zs3)
 
-(defparameter *location-binder*
-  (make-binder '("LocationConstraint" (bind :location))))
+(defbinder location-constraint
+  ("LocationConstraint" (bind :location)))
 
 (defclass location-constraint (response)
   ((location
@@ -40,7 +40,7 @@
 (set-element-class "LocationConstraint" 'location-constraint)
 
 (defmethod specialized-initialize ((response location-constraint) source)
-  (let ((bindings (xml-bind *location-binder* source)))
+  (let ((bindings (xml-bind 'location-constraint source)))
     (setf (location response) (bvalue :location bindings))
     response))
 

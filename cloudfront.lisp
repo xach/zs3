@@ -44,16 +44,15 @@
   "This table is used to signal the most specific error possible for
 distribution request error responses.")
 
-(defparameter *distribution-error-response-binder*
-  (make-binder
-   '("ErrorResponse"
-     ("Error"
-      ("Type" (bind :type))
-      ("Code" (bind :code))
-      ("Message" (bind :message))
-      (optional 
-       ("Detail" (bind :detail))))
-     ("RequestId" (bind :request-id)))))
+(defbinder distribution-error-response
+  ("ErrorResponse"
+   ("Error"
+    ("Type" (bind :type))
+    ("Code" (bind :code))
+    ("Message" (bind :message))
+    (optional
+     ("Detail" (bind :detail))))
+   ("RequestId" (bind :request-id))))
 
 (define-condition distribution-error ()
   ((error-type
@@ -82,7 +81,7 @@ distribution request error responses.")
      (setf (gethash ,error-xml-code *distribution-specific-errors*)
            ',error-name)
      (define-condition ,error-name (distribution-error) ())))
-                                 
+
 (define-specific-distribution-error "InvalidIfMatchVersion"
     invalid-if-match-version)
 
@@ -102,7 +101,7 @@ distribution request error responses.")
   (when (and content
              (plusp (length content))
              (string= (xml-document-element content) "ErrorResponse"))
-    (let* ((bindings (xml-bind *distribution-error-response-binder*
+    (let* ((bindings (xml-bind 'distribution-error-response
                                content))
            (condition (gethash (bvalue :code bindings)
                                *distribution-specific-errors*
@@ -151,7 +150,8 @@ distribution request error responses.")
     :accessor cnames)
    (default-root-object
     :initarg :default-root-object
-    :accessor default-root-object)
+    :accessor default-root-object
+    :initform nil)
    (comment
     :initarg :comment
     :initform nil
@@ -223,8 +223,8 @@ distribution request error responses.")
         (cxml:text (if (enabledp distribution)
                        "true"
                        "false")))
-      (cxml:with-element "DefaultRootObject"
-        (when (default-root-object distribution)
+      (when (default-root-object distribution)
+        (cxml:with-element "DefaultRootObject"
           (cxml:text (default-root-object distribution))))
       (let ((logging-bucket (logging-bucket distribution))
             (logging-prefix (logging-prefix distribution)))
@@ -268,34 +268,29 @@ distribution request error responses.")
       (maybe-signal-distribution-error code content)
       (values content headers code phrase))))
 
-(defparameter *distribution-config-form*
-  '("DistributionConfig"
-    ("Origin" (bind :origin))
-    ("CallerReference" (bind :caller-reference))
-    (sequence :cnames
-     ("CNAME" (bind :cname)))
-    (optional ("Comment" (bind :comment)))
-    ("Enabled" (bind :enabled))
-    (optional
-     ("Logging"
-      ("Bucket" (bind :logging-bucket))
-      ("Prefix" (bind :logging-prefix))))
-    (optional
-     ("DefaultRootObject" (bind :default-root-object)))))
+(defbinder distribution-config
+  ("DistributionConfig"
+   ("Origin" (bind :origin))
+   ("CallerReference" (bind :caller-reference))
+   (sequence :cnames
+             ("CNAME" (bind :cname)))
+   (optional ("Comment" (bind :comment)))
+   ("Enabled" (bind :enabled))
+   (optional
+    ("Logging"
+     ("Bucket" (bind :logging-bucket))
+     ("Prefix" (bind :logging-prefix))))
+   (optional
+    ("DefaultRootObject" (bind :default-root-object)))))
 
-(defparameter *distribution-form*
-  `("Distribution"
+(defbinder distribution
+  ("Distribution"
     ("Id" (bind :id))
     ("Status" (bind :status))
     ("LastModifiedTime" (bind :last-modified-time))
     ("InProgressInvalidationBatches" (bind :in-progress-invalidation-batches))
     ("DomainName" (bind :domain-name))
-    ,@*distribution-config-form*))
-
-(defparameter *distribution-config-binder*
-  (make-binder *distribution-config-form*))
-
-(defparameter *distribution-binder* (make-binder *distribution-form*))
+    (include distribution-config)))
 
 (defun bindings-distribution (bindings)
   (let ((timestamp (bvalue :last-modified-time bindings)))
@@ -331,7 +326,7 @@ not retry in the event of an etag match problem."
 (defun latest-version (distribution)
   (multiple-value-bind (document headers)
       (distribution-request :url-suffix (format nil "/~A" (id distribution)))
-    (let ((new (bindings-distribution (xml-bind *distribution-binder*
+    (let ((new (bindings-distribution (xml-bind 'distribution
                                                 document))))
       (setf (etag new) (bvalue :etag headers))
       new)))
@@ -396,28 +391,27 @@ DISTRIBUTION itself, as it may be re-tried multiple times."
                       ,@body)
     ,distribution))
 
-(defparameter *distribution-list-binder*
-  (make-binder
-   '("DistributionList"
-     ("Marker" (bind :marker))
-     (optional
-      ("NextMarker" (bind :next-marker)))
-     ("MaxItems" (bind :max-items))
-     ("IsTruncated" (bind :is-truncateD))
-     (sequence :distributions
-      ("DistributionSummary"
-       ("Id" (bind :id))
-       ("Status" (bind :status))
-       ("LastModifiedTime" (bind :last-modified-time))
-       ("DomainName" (bind :domain-name))
-       ("Origin" (bind :origin))
-       (sequence :cnames ("CNAME" (bind :cname)))
-       (optional ("Comment" (bind :comment)))
-       ("Enabled" (bind :enabled)))))))
+(defbinder distribution-list
+  ("DistributionList"
+   ("Marker" (bind :marker))
+   (optional
+    ("NextMarker" (bind :next-marker)))
+   ("MaxItems" (bind :max-items))
+   ("IsTruncated" (bind :is-truncateD))
+   (sequence :distributions
+             ("DistributionSummary"
+              ("Id" (bind :id))
+              ("Status" (bind :status))
+              ("LastModifiedTime" (bind :last-modified-time))
+              ("DomainName" (bind :domain-name))
+              ("Origin" (bind :origin))
+              (sequence :cnames ("CNAME" (bind :cname)))
+              (optional ("Comment" (bind :comment)))
+              ("Enabled" (bind :enabled))))))
 
 (defun all-distributions (&key ((:credentials *credentials*) *credentials*))
   (let* ((document (distribution-request))
-         (bindings (xml-bind *distribution-list-binder* document)))
+         (bindings (xml-bind 'distribution-list document)))
     (mapcar (lambda (b)
               (bindings-distribution b))
             (bvalue :distributions bindings))))
@@ -432,7 +426,7 @@ DISTRIBUTION itself, as it may be re-tried multiple times."
                                      :cnames cnames)))
     (let* ((document (distribution-request :method :post
                                            :distribution distribution))
-           (bindings (xml-bind *distribution-binder* document)))
+           (bindings (xml-bind 'distribution document)))
       (bindings-distribution bindings))))
 
 (defun %delete-distribution (distribution)
@@ -531,23 +525,18 @@ DISTRIBUTION itself, as it may be re-tried multiple times."
             (id invalidation)
             (status invalidation))))
 
-(defparameter *invalidation-batch-form*
-  '("InvalidationBatch"
-    (sequence :paths ("Path" (bind :path)))
-    ("CallerReference" (bind :caller-reference))))
 
-(defparameter *invalidation-form*
-  `("Invalidation"
-    ("Id" (bind :id))
-    ("Status" (bind :status))
-    ("CreateTime" (bind :create-time))
-    ,*invalidation-batch-form*))
+(defbinder invalidation-batch
+  ("InvalidationBatch"
+   (sequence :paths ("Path" (bind :path)))
+   ("CallerReference" (bind :caller-reference))))
 
-(defparameter *invalidation-batch-binder*
-  (make-binder *invalidation-batch-form*))
-
-(defparameter *invalidation-binder*
-  (make-binder *invalidation-form*))
+(defbinder invalidation
+  ("Invalidation"
+   ("Id" (bind :id))
+   ("Status" (bind :status))
+   ("CreateTime" (bind :create-time))
+   (include invalidation-batch)))
 
 (defmethod merge-bindings ((invalidation invalidation) bindings)
   (setf (id invalidation) (bvalue :id bindings)
@@ -590,7 +579,7 @@ DISTRIBUTION itself, as it may be re-tried multiple times."
           (invalidation-request invalidation
                                 :method :post
                                 :content (invalidation-batch-document invalidation))))
-    (merge-bindings invalidation (xml-bind *invalidation-binder* response))))
+    (merge-bindings invalidation (xml-bind 'invalidation response))))
 
 
 (defmethod refresh ((invalidation invalidation))
@@ -598,4 +587,4 @@ DISTRIBUTION itself, as it may be re-tried multiple times."
          (invalidation-request invalidation
                                :url-suffix (format nil "/~A"
                                                    (id invalidation)))))
-    (merge-bindings invalidation (xml-bind *invalidation-binder* document))))
+    (merge-bindings invalidation (xml-bind 'invalidation document))))

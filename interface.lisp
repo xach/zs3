@@ -480,16 +480,16 @@ constraint."
           (cxml:with-element "Key"
             (cxml:text key)))))))
 
-(defparameter *delete-objects-binder*
-  (make-binder '("DeleteResult"
-                 (sequence :results
-                  (alternate
-                   ("Deleted"
-                    ("Key" (bind :deleted-key)))
-                   ("Error"
-                    ("Key" (bind :error-key))
-                    ("Code" (bind :error-code))
-                    ("Message" (bind :error-message))))))))
+(defbinder delete-objects-result
+  ("DeleteResult"
+   (sequence :results
+             (alternate
+              ("Deleted"
+               ("Key" (bind :deleted-key)))
+              ("Error"
+               ("Key" (bind :error-key))
+               ("Code" (bind :error-code))
+               ("Message" (bind :error-message)))))))
 
 (defun delete-objects (bucket keys &key
                        ((:credentials *credentials*) *credentials*))
@@ -509,7 +509,7 @@ constraint."
                                                       :bucket bucket
                                                       :content content
                                                       :content-md5 md5)))
-                      (bindings (xml-bind *delete-objects-binder*
+                      (bindings (xml-bind 'delete-objects-result
                                           (body response)))
                       (results (bvalue :results bindings)))
                  (dolist (result results (values deleted failed))

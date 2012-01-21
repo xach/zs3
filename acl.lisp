@@ -170,18 +170,17 @@
 
 ;;; Parsing XML ACL responses
 
-(defparameter *acl-binder*
-  (make-binder
-   '("AccessControlPolicy"
-     ("Owner"
-      ("ID" (bind :owner-id))
-      ("DisplayName" (bind :owner-display-name)))
-     ("AccessControlList"
-      (sequence :grants
-       ("Grant"
-        ("Grantee"
-         (elements-alist :grantee))
-        ("Permission" (bind :permission))))))))
+(defbinder access-control-policy
+  ("AccessControlPolicy"
+   ("Owner"
+    ("ID" (bind :owner-id))
+    ("DisplayName" (bind :owner-display-name)))
+   ("AccessControlList"
+    (sequence :grants
+              ("Grant"
+               ("Grantee"
+                (elements-alist :grantee))
+               ("Permission" (bind :permission)))))))
 
 (defclass acl-response (response)
   ((acl
@@ -232,7 +231,7 @@
                                                   :email (cdr email)))))))
 
 (defmethod specialized-initialize ((response acl-response) source)
-  (let* ((bindings (xml-bind *acl-binder* source))
+  (let* ((bindings (xml-bind 'access-control-policy source))
          (owner (make-instance 'acl-person
                                :id (bvalue :owner-id bindings)
                                :display-name (bvalue :owner-display-name bindings)))

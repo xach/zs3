@@ -29,17 +29,16 @@
 
 (in-package #:zs3)
 
-(defparameter *all-buckets-binder*
-  (make-binder
-   '("ListAllMyBucketsResult"
-     ("Owner"
-      ("ID" (bind :owner-id))
-      ("DisplayName" (bind :display-name)))
-     ("Buckets"
-      (sequence :buckets
-       ("Bucket"
-        ("Name" (bind :name))
-        ("CreationDate" (bind :creation-date))))))))
+(defbinder all-buckets
+  ("ListAllMyBucketsResult"
+   ("Owner"
+    ("ID" (bind :owner-id))
+    ("DisplayName" (bind :display-name)))
+   ("Buckets"
+    (sequence :buckets
+              ("Bucket"
+               ("Name" (bind :name))
+               ("CreationDate" (bind :creation-date)))))))
 
 (defclass all-buckets (response)
   ((owner
@@ -52,7 +51,7 @@
 (set-element-class "ListAllMyBucketsResult" 'all-buckets)
 
 (defmethod specialized-initialize ((response all-buckets) source)
-  (let ((bindings (xml-bind *all-buckets-binder* source)))
+  (let ((bindings (xml-bind 'all-buckets source)))
     (setf (owner response)
           (make-instance 'person
                          :id (bvalue :owner-id bindings)
@@ -68,32 +67,31 @@
                                     :creation-date (parse-amazon-timestamp timestamp)))))))
 
 
-(defparameter *list-bucket-binder*
-  (make-binder
-   '("ListBucketResult"
-     ("Name" (bind :bucket-name))
-     ("Prefix" (bind :prefix))
-     ("Marker" (bind :marker))
-     (optional
-      ("NextMarker" (bind :next-marker)))
-     ("MaxKeys" (bind :max-keys))
-     (optional
-      ("Delimiter" (bind :delimiter)))
-     ("IsTruncated" (bind :truncatedp))
-     (sequence :keys
-      ("Contents"
-       ("Key" (bind :key))
-       ("LastModified" (bind :last-modified))
-       ("ETag" (bind :etag))
-       ("Size" (bind :size))
-       (optional
-        ("Owner"
-         ("ID" (bind :owner-id))
-         ("DisplayName" (bind :owner-display-name))))
-       ("StorageClass" (bind :storage-class))))
-     (sequence :common-prefixes
-      ("CommonPrefixes"
-       ("Prefix" (bind :prefix)))))))
+(defbinder list-bucket-result
+  ("ListBucketResult"
+   ("Name" (bind :bucket-name))
+   ("Prefix" (bind :prefix))
+   ("Marker" (bind :marker))
+   (optional
+    ("NextMarker" (bind :next-marker)))
+   ("MaxKeys" (bind :max-keys))
+   (optional
+    ("Delimiter" (bind :delimiter)))
+   ("IsTruncated" (bind :truncatedp))
+   (sequence :keys
+             ("Contents"
+              ("Key" (bind :key))
+              ("LastModified" (bind :last-modified))
+              ("ETag" (bind :etag))
+              ("Size" (bind :size))
+              (optional
+               ("Owner"
+                ("ID" (bind :owner-id))
+                ("DisplayName" (bind :owner-display-name))))
+              ("StorageClass" (bind :storage-class))))
+   (sequence :common-prefixes
+             ("CommonPrefixes"
+              ("Prefix" (bind :prefix))))))
 
 (defclass bucket-listing (response)
   ((bucket-name
@@ -156,7 +154,7 @@
                    :storage-class storage-class)))
 
 (defmethod specialized-initialize ((response bucket-listing) source)
-  (let* ((bindings (xml-bind *list-bucket-binder* source))
+  (let* ((bindings (xml-bind 'list-bucket-result source))
          (bucket-name (bvalue :bucket-name bindings)))
     (setf (bucket-name response) bucket-name)
     (setf (prefix response) (bvalue :prefix bindings))

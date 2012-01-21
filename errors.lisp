@@ -29,12 +29,11 @@
 
 (in-package #:zs3)
 
-(defvar *error-binder*
-  (make-binder
-   '("Error"
-     ("Code" (bind :code))
-     ("Message" (bind :message))
-     (elements-alist :data))))
+(defbinder error
+  ("Error"
+   ("Code" (bind :code))
+   ("Message" (bind :message))
+   (elements-alist :data)))
 
 (defclass amazon-error (response)
   ((code
@@ -54,7 +53,7 @@
     (cdr (assoc name (error-data response) :test #'equalp))))
 
 (defmethod specialized-initialize ((response amazon-error) source)
-  (let ((bindings (xml-bind *error-binder* source)))
+  (let ((bindings (xml-bind 'error source)))
     (setf (code response) (bvalue :code bindings))
     (setf (message response) (bvalue :message bindings))
     (setf (error-data response) (bvalue :data bindings))))
