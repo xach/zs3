@@ -27,6 +27,8 @@
 ;;;;
 ;;;; lifecycle.lisp
 
+(in-package #:zs3)
+
 ;;; Object expiration for buckets
 
 (defbinder lifecycle-configuration
