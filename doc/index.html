@@ -553,6 +553,72 @@ bucket with the given name.
   </blockquote>
 </div>
 
+<div class='item'>
+  <div class='type'><a name='bucket-lifecycle'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>bucket-lifecycle</code>
+    <span class='args'>
+      <var>bucket</var>
+    </span>
+    <span class='result'>=> <var>rules-list</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a list of lifecycle rules
+    for <var>bucket</var>. Signals a NO-SUCH-LIFECYCLE-CONFIGURATION
+    error if the bucket has no lifecycle rules configured.
+
+    <p>Bucket lifecycle rules are used to control the automatic
+      deletion of objects in a bucket. For more information about
+      bucket lifecycle configuration,
+      see <a href="http://docs.amazonwebservices.com/AmazonS3/latest/dev/ObjectExpiration.html">Object
+      Expiration</a> in the Amazon S3 developer documentation.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='setf-bucket-lifecycle'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>(setf bucket-lifecycle)</code>
+    <span class='args'>
+      <var>rules</var> <var>bucket</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Sets the lifecycle configuration of <var>bucket</var> to the
+    list of bucket lifecycle rules <var>rules</var>. To create a
+    bucket lifecycle rule, use <a href='#lifecycle-rule'><tt>LIFECYCLE-RULE</tt></a>.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='lifecycle-rule'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>lifecycle-rule</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>prefix</var>
+      <var>days</var>
+    </span>
+    <span class='result'>=> <var>rule</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Creates a rule object suitable for passing
+      to <a href='#setf-bucket-lifecycle'><tt>(SETF
+	  BUCKET-LIFECYCLE)</tt></a>. 
+
+    <p><var>prefix</var> is a string; all objects in a bucket with
+	keys matching the prefix will be affected by the rule.
+
+    <p><var>days</var> is the number of days after which a matching
+      object is deleted.
+  </blockquote>
+</div>
+
+
 
 <a name='querying-buckets'><h3>Querying Buckets</h3></a>
 
