@@ -119,6 +119,9 @@
     () ())
 
 (defun bucket-lifecycle (bucket)
+  "Return the bucket lifecycle rules for BUCKET. Signals
+NO-SUCH-LIFECYCLE-CONFIGURATION if the bucket has no lifecycle
+configuration."
   (let ((response
          (submit-request (make-instance 'request
                                         :method :get
@@ -128,12 +131,16 @@
      (xml-bind 'lifecycle-configuration (body response)))))
 
 (defun delete-bucket-lifecycle (bucket)
+  "Delete the lifecycle configuration of BUCKET."
   (submit-request (make-instance 'request
                                  :method :delete
                                  :bucket bucket
                                  :sub-resource "lifecycle")))
 
 (defun (setf bucket-lifecycle) (rules bucket)
+  "Set the lifecycle configuration of BUCKET to RULES. RULES is
+coerced to a list if needed. If RULES is NIL, the lifecycle
+configuration is deleted with DELETE-BUCKET-LIFECYCLE."
   (when (null rules)
     (return-from bucket-lifecycle
       (delete-bucket-lifecycle bucket)))
