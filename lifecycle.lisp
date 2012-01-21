@@ -114,6 +114,10 @@
                              :days (parse-integer days))
               rules)))))
 
+(define-specific-error (no-such-lifecycle-configuration
+                        "NoSuchLifecycleConfiguration")
+    () ())
+
 (defun bucket-lifecycle (bucket)
   (let ((response
          (submit-request (make-instance 'request
