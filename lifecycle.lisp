@@ -129,8 +129,11 @@
                                  :bucket bucket
                                  :sub-resource "lifecycle")))
 
-(defun set-bucket-lifecycle (bucket rules)
-  (when (atom rules)
+(defun (setf bucket-lifecycle) (rules bucket)
+  (when (null rules)
+    (return-from bucket-lifecycle
+      (delete-bucket-lifecycle bucket)))
+  (unless (listp rules)
     (setf rules (list rules)))
   (let* ((content (lifecycle-document rules))
          (md5 (vector-md5/b64 content)))
