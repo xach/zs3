@@ -43,7 +43,9 @@
            #:bucket-exists-p
            #:create-bucket
            #:delete-bucket
-           #:bucket-location)
+           #:bucket-location
+           #:bucket-lifecycle
+           #:lifecycle-rule)
   ;; Bucket queries
   (:export #:query-bucket
            #:continue-bucket-query
@@ -122,7 +124,8 @@
            #:invalid-logging-target
            #:key-too-long
            #:request-time-skewed
-           #:operation-aborted)
+           #:operation-aborted
+           #:no-such-lifecycle-configuration)
   ;; Cloudfront distribution management
   (:export #:status
            #:origin-bucket
