@@ -118,6 +118,8 @@
                         "NoSuchLifecycleConfiguration")
     () ())
 
+;;; FIXME: Add credentials args!
+
 (defun bucket-lifecycle (bucket)
   "Return the bucket lifecycle rules for BUCKET. Signals
 NO-SUCH-LIFECYCLE-CONFIGURATION if the bucket has no lifecycle
