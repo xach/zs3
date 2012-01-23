@@ -475,10 +475,12 @@ constraint."
 (defun bulk-delete-document (keys)
   (cxml:with-xml-output (cxml:make-octet-vector-sink)
     (cxml:with-element "Delete"
-      (dolist (key keys)
-        (cxml:with-element "Object"
-          (cxml:with-element "Key"
-            (cxml:text key)))))))
+      (map nil
+           (lambda (key)
+             (cxml:with-element "Object"
+               (cxml:with-element "Key"
+                 (cxml:text (name key)))))
+           keys))))
 
 (defbinder delete-objects-result
   ("DeleteResult"
