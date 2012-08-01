@@ -34,6 +34,12 @@
 
 (defvar *days* #("Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun"))
 
+(deftype octet ()
+  '(unsigned-byte 8))
+
+(deftype octet-vector (&optional size)
+  `(simple-array octet (,size)))
+
 (defun http-date-string (&optional (time (get-universal-time)))
   "Return a HTTP-style date string."
   (multiple-value-bind (second minute hour day month year day-of-week)
@@ -129,7 +135,7 @@ character."
   "Write a sequence of octets RESPONSE to FILE."
   (with-open-file (stream file :direction :output
                                :if-exists :supersede
-                               :element-type '(unsigned-byte 8))
+                               :element-type 'octet)
     (write-sequence response stream))
   (probe-file file))
 
@@ -169,7 +175,7 @@ return NIL."
        (aref array (1- (length array)))))
 
 (defun file-size (file)
-  (with-open-file (stream file :element-type '(unsigned-byte 8))
+  (with-open-file (stream file :element-type 'octet)
     (file-length stream)))
 
 (defvar +unix-time-difference+
@@ -179,14 +185,14 @@ return NIL."
   (- universal-time +unix-time-difference+))
 
 (defun octet-vector (&rest octets)
-  (make-array (length octets) :element-type '(unsigned-byte 8)
+  (make-array (length octets) :element-type 'octet
               :initial-contents octets))
 
 (defun keywordify (string-designator)
   (intern (string string-designator) :keyword))
 
 (defun make-octet-vector (size)
-  (make-array size :element-type '(unsigned-byte 8)))
+  (make-array size :element-type 'octet))
 
 (defun now+ (delta)
   (+ (get-universal-time) delta))
@@ -281,7 +287,7 @@ supplied or is NIL, create a fresh buffer of length N and return it."
           (push buffer buffers)))
       (push (read-exactly-n-octets stream rest) buffers)
       (merge-file-buffers (nreverse buffers) n))))
-          
+
 (defun stream-subset-vector (stream start end)
   (unless start
     (setf start 0))
@@ -292,10 +298,10 @@ supplied or is NIL, create a fresh buffer of length N and return it."
   (when (plusp start)
     (skip-stream-octets stream start))
   (if (not end)
-      (stream-octets-until-eof stream)
+      (drained-stream-vector stream)
       (partial-stream-vector stream (- end start))))
 
 (defun file-subset-vector (file start end)
-  (with-open-file (stream file :element-type '(unsigned-byte 8))
+  (with-open-file (stream file :element-type 'octet)
     (stream-subset-vector stream start end)))
 
