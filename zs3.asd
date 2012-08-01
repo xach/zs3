@@ -33,7 +33,7 @@
                #:ironclad
                #:puri
                #:cl-base64)
-                                                        :version "1.1.12"
+                                                                 :version "1.1.13"
   :description "A Common Lisp library for working with Amazon's Simple
   Storage Service (S3) and CloudFront content delivery service."
   :author "Zach Beane <xach@xach.com>"
