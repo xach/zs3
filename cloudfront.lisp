@@ -206,32 +206,32 @@ distribution request error responses.")
 ;;; Distribution-related requests
 
 (defun distribution-document (distribution)
-  (cxml:with-xml-output (cxml:make-string-sink)
-    (cxml:with-element "DistributionConfig"
-      (cxml:attribute "xmlns" "http://cloudfront.amazonaws.com/doc/2010-08-01/")
-      (cxml:with-element "Origin"
-        (cxml:text (origin-bucket distribution)))
-      (cxml:with-element "CallerReference"
-        (cxml:text (caller-reference distribution)))
+  (with-xml-output
+    (with-element "DistributionConfig"
+      (attribute "xmlns" "http://cloudfront.amazonaws.com/doc/2010-08-01/")
+      (with-element "Origin"
+        (text (origin-bucket distribution)))
+      (with-element "CallerReference"
+        (text (caller-reference distribution)))
       (dolist (cname (cnames distribution))
-        (cxml:with-element "CNAME"
-          (cxml:text cname)))
+        (with-element "CNAME"
+          (text cname)))
       (when (comment distribution)
-        (cxml:with-element "Comment"
-          (cxml:text (comment distribution))))
-      (cxml:with-element "Enabled"
-        (cxml:text (if (enabledp distribution)
-                       "true"
-                       "false")))
+        (with-element "Comment"
+          (text (comment distribution))))
+      (with-element "Enabled"
+        (text (if (enabledp distribution)
+                  "true"
+                  "false")))
       (when (default-root-object distribution)
-        (cxml:with-element "DefaultRootObject"
-          (cxml:text (default-root-object distribution))))
+        (with-element "DefaultRootObject"
+          (text (default-root-object distribution))))
       (let ((logging-bucket (logging-bucket distribution))
             (logging-prefix (logging-prefix distribution)))
         (when (and logging-bucket logging-prefix)
-          (cxml:with-element "Logging"
-            (cxml:with-element "Bucket" (cxml:text logging-bucket))
-            (cxml:with-element "Prefix" (cxml:text logging-prefix))))))))
+          (with-element "Logging"
+            (with-element "Bucket" (text logging-bucket))
+            (with-element "Prefix" (text logging-prefix))))))))
 
 (defun distribution-request-headers (distribution)
   (let* ((date (http-date-string))
@@ -561,14 +561,14 @@ DISTRIBUTION itself, as it may be re-tried multiple times."
                         :content content))
 
 (defun invalidation-batch-document (invalidation)
-  (cxml:with-xml-output (cxml:make-string-sink)
-    (cxml:with-element "InvalidationBatch"
-      (cxml:attribute "xmlns" "http://cloudfront.amazonaws.com/doc/2010-08-01/")
+  (with-xml-output
+    (with-element "InvalidationBatch"
+      (attribute "xmlns" "http://cloudfront.amazonaws.com/doc/2010-08-01/")
       (dolist (path (paths invalidation))
-        (cxml:with-element "Path"
-          (cxml:text path)))
-      (cxml:with-element "CallerReference"
-        (cxml:text (caller-reference invalidation))))))
+        (with-element "Path"
+          (text path)))
+      (with-element "CallerReference"
+        (text (caller-reference invalidation))))))
 
 
 (defun invalidate-paths (distribution paths)

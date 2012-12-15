@@ -127,8 +127,8 @@
 (defgeneric acl-serialize (object))
 
 (defmethod acl-serialize ((person person))
-  (cxml:with-element "ID" (cxml:text (id person)))
-  (cxml:with-element "DisplayName" (cxml:text (display-name person))))
+  (with-element "ID" (text (id person)))
+  (with-element "DisplayName" (text (display-name person))))
 
 (defvar *xsi* "http://www.w3.org/2001/XMLSchema-instance")
 
@@ -140,9 +140,6 @@
   (:method ((grantee acl-email))
     "AmazonCustomerByEmail"))
 
-(defun simple-element (name value)
-  (cxml:with-element name (cxml:text value)))
-
 (defmethod acl-serialize ((grantee acl-group))
   (simple-element "URI" (uri grantee)))
 
@@ -150,20 +147,20 @@
   (simple-element "EmailAddress" (email grantee)))
 
 (defmethod acl-serialize ((grant grant))
-  (cxml:with-element "Grant"
-    (cxml:with-element "Grantee"
-      (cxml:attribute* "xmlns" "xsi" *xsi*)
-      (cxml:attribute* "xsi" "type" (xsi-type (grantee grant)))
+  (with-element "Grant"
+    (with-element "Grantee"
+      (attribute* "xmlns" "xsi" *xsi*)
+      (attribute* "xsi" "type" (xsi-type (grantee grant)))
       (acl-serialize (grantee grant)))
     (simple-element "Permission" (permission-name (permission grant)))))
 
 (defmethod acl-serialize ((acl access-control-list))
-  (cxml:with-xml-output (cxml:make-octet-vector-sink)
-    (cxml:with-element "AccessControlPolicy"
-      (cxml:attribute "xmlns" "http://s3.amazonaws.com/doc/2006-03-01/")
-      (cxml:with-element "Owner"
+  (with-xml-output
+    (with-element "AccessControlPolicy"
+      (attribute "xmlns" "http://s3.amazonaws.com/doc/2006-03-01/")
+      (with-element "Owner"
         (acl-serialize (owner acl)))
-      (cxml:with-element "AccessControlList"
+      (with-element "AccessControlList"
         (dolist (grant (remove-duplicates (grants acl) :test #'acl-eqv))
           (acl-serialize grant))))))
 

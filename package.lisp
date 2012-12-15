@@ -45,7 +45,8 @@
            #:delete-bucket
            #:bucket-location
            #:bucket-lifecycle
-           #:lifecycle-rule)
+           #:lifecycle-rule
+           #:restore-object)
   ;; Bucket queries
   (:export #:query-bucket
            #:continue-bucket-query
@@ -158,7 +159,12 @@
            #:distribution-not-disabled
            #:cname-already-exists
            #:too-many-distributions)
-  (:shadow #:method))
+  (:shadow #:method)
+  (:shadowing-import-from #:cxml
+                          #:with-element
+                          #:text
+                          #:attribute
+                          #:attribute*))
 
 
 

@@ -74,14 +74,14 @@
 
 (defgeneric log-serialize (object)
   (:method ((logging-setup logging-setup))
-    (cxml:with-xml-output (cxml:make-octet-vector-sink)
-      (cxml:with-element "BucketLoggingStatus"
+    (with-xml-output
+      (with-element "BucketLoggingStatus"
         (when (target-bucket logging-setup)
-          (cxml:with-element "LoggingEnabled"
+          (with-element "LoggingEnabled"
             (simple-element "TargetBucket" (target-bucket logging-setup))
             (simple-element "TargetPrefix" (target-prefix logging-setup))
             (when (target-grants logging-setup)
-              (cxml:with-element "TargetGrants"
+              (with-element "TargetGrants"
                 (dolist (grant (target-grants logging-setup))
                   (acl-serialize grant))))))))))
 

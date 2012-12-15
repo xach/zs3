@@ -1,5 +1,5 @@
 ;;;;
-;;;; Copyright (c) 2008 Zachary Beane, All Rights Reserved
+;;;; Copyright (c) 2012 Zachary Beane, All Rights Reserved
 ;;;;
 ;;;; Redistribution and use in source and binary forms, with or without
 ;;;; modification, are permitted provided that the following conditions
@@ -25,35 +25,14 @@
 ;;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;;
-;;;; zs3.asd
+;;;; xml-output.lisp
 
-(asdf:defsystem #:zs3
-  :depends-on (#:drakma
-               #:cxml
-               #:ironclad
-               #:puri
-               #:cl-base64)
-  :version "1.1.13"
-  :description "A Common Lisp library for working with Amazon's Simple
-  Storage Service (S3) and CloudFront content delivery service."
-  :author "Zach Beane <xach@xach.com>"
-  :serial t
-  :components ((:file "package")
-               (:file "utils")
-               (:file "crypto")
-               (:file "xml-binding")
-               (:file "xml-output")
-               (:file "credentials")
-               (:file "post")
-               (:file "redirects")
-               (:file "request")
-               (:file "response")
-               (:file "objects")
-               (:file "bucket-listing")
-               (:file "errors")
-               (:file "acl")
-               (:file "logging")
-               (:file "location")
-               (:file "interface")
-               (:file "lifecycle")
-               (:file "cloudfront")))
+(in-package #:zs3)
+
+(defmacro with-xml-output (&body body)
+  `(cxml:with-xml-output (cxml:make-octet-vector-sink)
+     ,@body))
+
+(defun simple-element (name value)
+  (with-element name (cxml:text value)))
+
