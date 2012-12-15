@@ -38,8 +38,16 @@
               ("ID" (bind :id))
               ("Prefix" (bind :prefix))
               ("Status" (bind :status))
-              ("Expiration"
-               ("Days" (bind :days)))))))
+              (alternate
+               ("Expiration"
+                (alternate
+                 ("Days" (bind :days))
+                 ("Date" (bind :date))))
+               ("Transition"
+                (alternate
+                 ("Days" (bind :days))
+                 ("Date" (bind :date)))
+                ("StorageClass" (bind :storage-class))))))))
 
 (defclass lifecycle-rule ()
   ((id
@@ -52,15 +60,46 @@
     :initarg :enabledp
     :accessor enabledp)
    (days
+    :documentation
+    "The number of days after which the rule action will take
+    effect. Can be zero, meaning that it should take effect the next
+    time Amazon's periodic transitioning process runs. One of DAYS or
+    DATE must be provided."
     :initarg :days
-    :accessor days)))
+    :accessor days)
+   (date
+    :documentation
+    "The date at [XXX after?] which the rule takes effect. One of DAYS
+    or DATE must be provided."
+    :initarg :date
+    :accessor date)
+   (action
+    :documentation
+    "The action of this rule; must be either :EXPIRE (the default)
+    or :TRANSITION. :TRANSITION means matching objects will transition
+    to Glacier storage."
+    :initarg :action
+    :accessor action))
+  (:documentation
+   "A lifecycle rule. See
+   http://docs.amazonwebservices.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html#intro-lifecycle-rules.")
+  (:default-initargs
+   :prefix (string (gensym))
+   :enabledp t
+   :days nil
+   :date nil
+   :action :expire))
 
 (defmethod print-object ((rule lifecycle-rule) stream)
   (print-unreadable-object (rule stream :type t)
-    (format stream "~S expire prefix ~S in ~D day~:P (~:[disabled~;enabled~])"
+    (format stream "~S ~(~A~) prefix ~S ~
+                    ~:[on ~A~;in ~:*~D day~:P~*~] ~
+                    (~:[disabled~;enabled~])"
             (id rule)
+            (action rule)
             (prefix rule)
             (days rule)
+            (date rule)
             (enabledp rule))))
 
 ;;; FIXME: The GFs for ENABLE and DISABLE should really be moved
@@ -72,55 +111,80 @@
 (defmethod enable ((rule lifecycle-rule))
   (setf (enabledp rule) t))
 
-(defun lifecycle-rule (&key id prefix (enabled t) days)
+(defun lifecycle-rule (&key id prefix (enabled t) days date
+                       (action :expire))
   (unless id
     (setf id (string (gensym))))
   (unless prefix
     (error "Missing PREFIX argument"))
-  (unless days
-    (error "Missing DAYS argument"))
+  (when (or (not (or days date))
+            (and days date))
+    (error "Exactly one of :DAYS or :DATE must be provided"))
   (make-instance 'lifecycle-rule
                  :id id
                  :prefix prefix
                  :enabledp enabled
-                 :days days))
+                 :days days
+                 :date date
+                 :action action))
 
 (defun lifecycle-document (rules)
-  (cxml:with-xml-output (cxml:make-octet-vector-sink)
-    (cxml:with-element "LifecycleConfiguration"
-      (dolist (rule rules)
-        (cxml:with-element "Rule"
-          (cxml:with-element "ID"
-            (cxml:text (id rule)))
-          (cxml:with-element "Prefix"
-            (cxml:text (prefix rule)))
-          (cxml:with-element "Status"
-            (cxml:text (if (enabledp rule)
-                           "Enabled"
-                           "Disabled")))
-          (cxml:with-element "Expiration"
-            (cxml:with-element "Days"
-              (cxml:text (princ-to-string (days rule))))))))))
+  "Return an XML document that can be posted as the lifecycle
+configuration of a bucket. See
+http://docs.amazonwebservices.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html#intro-lifecycle-rules
+for details."
+  (flet ((timeframe-element (rule)
+           (if (days rule)
+               (with-element "Days"
+                 (text (princ-to-string (days rule))))
+               (with-element "Date"
+                 (text (date rule))))))
+    (with-xml-output
+      (with-element "LifecycleConfiguration"
+        (dolist (rule rules)
+          (with-element "Rule"
+            (with-element "ID"
+              (text (id rule)))
+            (with-element "Prefix"
+              (text (prefix rule)))
+            (with-element "Status"
+              (text (if (enabledp rule)
+                        "Enabled"
+                        "Disabled")))
+            (ecase (action rule)
+              (:expire
+               (with-element "Expiration"
+                 (timeframe-element rule)))
+              (:transition
+               (with-element "Transition"
+                 (timeframe-element rule)
+                 (with-element "StorageClass"
+                   (text "GLACIER")))))))))))
 
 (defun bindings-lifecycle-rules (bindings)
+  "Create a list of lifecycle rules from BINDINGS, which are obtained
+by xml-binding the LIFECYCLE-CONFIGURATION binder with a document."
   (let ((rules '()))
     (dolist (rule-bindings (bvalue :rules bindings) (nreverse rules))
-      (alist-bind (id prefix status days)
+      (alist-bind (id prefix status days date storage-class)
           rule-bindings
         (push (make-instance 'lifecycle-rule
                              :id id
                              :prefix prefix
                              :enabledp (string= status "Enabled")
-                             :days (parse-integer days))
+                             :action (if storage-class
+                                         :transition
+                                         :expire)
+                             :date date
+                             :days (and days (parse-integer days)))
               rules)))))
 
 (define-specific-error (no-such-lifecycle-configuration
                         "NoSuchLifecycleConfiguration")
     () ())
 
-;;; FIXME: Add credentials args!
-
-(defun bucket-lifecycle (bucket)
+(defun bucket-lifecycle (bucket
+                         &key ((:credentials *credentials*) *credentials*))
   "Return the bucket lifecycle rules for BUCKET. Signals
 NO-SUCH-LIFECYCLE-CONFIGURATION if the bucket has no lifecycle
 configuration."
@@ -132,14 +196,18 @@ configuration."
     (bindings-lifecycle-rules
      (xml-bind 'lifecycle-configuration (body response)))))
 
-(defun delete-bucket-lifecycle (bucket)
+(defun delete-bucket-lifecycle (bucket
+                                &key
+                                ((:credentials *credentials*) *credentials*))
   "Delete the lifecycle configuration of BUCKET."
   (submit-request (make-instance 'request
                                  :method :delete
                                  :bucket bucket
                                  :sub-resource "lifecycle")))
 
-(defun (setf bucket-lifecycle) (rules bucket)
+(defun (setf bucket-lifecycle) (rules bucket
+                                &key
+                                ((:credentials *credentials*) *credentials*))
   "Set the lifecycle configuration of BUCKET to RULES. RULES is
 coerced to a list if needed. If RULES is NIL, the lifecycle
 configuration is deleted with DELETE-BUCKET-LIFECYCLE."
@@ -156,3 +224,22 @@ configuration is deleted with DELETE-BUCKET-LIFECYCLE."
                                    :sub-resource "lifecycle"
                                    :content-md5 md5
                                    :content content))))
+
+;;; Restoring from glacier
+
+(defun restore-request-document (days)
+  (with-xml-output
+    (with-element "RestoreRequest"
+      (with-element "Days"
+        (text (princ-to-string days))))))
+
+(defun restore-object (bucket key &key
+                       days
+                       ((:credentials *credentials*) *credentials*))
+  (let* ((content (restore-request-document days))
+         (md5 (vector-md5/b64 content)))
+    (submit-request (make-instance 'request
+                                   :content-md5 md5
+                                   :sub-resource "restore"
+                                   :bucket bucket
+                                   :key key))))
