@@ -246,6 +246,11 @@ configuration is deleted with DELETE-BUCKET-LIFECYCLE."
                                    :key key
                                    :content content))))
 
+(defun object-restoration-status (bucket key &key
+                                  ((:credentials *credentials*) *credentials*))
+  (let ((headers (head :bucket bucket :key key)))
+    (cdr (assoc :x-amz-restore headers))))
+
 (define-specific-error (restore-already-in-progress
                         "RestoreAlreadyInProgress")
     () ())

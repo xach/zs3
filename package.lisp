@@ -45,8 +45,7 @@
            #:delete-bucket
            #:bucket-location
            #:bucket-lifecycle
-           #:lifecycle-rule
-           #:restore-object)
+           #:lifecycle-rule)
   ;; Bucket queries
   (:export #:query-bucket
            #:continue-bucket-query
@@ -77,7 +76,9 @@
            #:delete-objects
            #:delete-all-objects
            #:object-metadata
-           #:set-storage-class)
+           #:set-storage-class
+           #:restore-object
+           #:object-restoration-status)
   ;; Access Control
   (:export #:get-acl
            #:put-acl
