@@ -126,7 +126,8 @@
            #:key-too-long
            #:request-time-skewed
            #:operation-aborted
-           #:no-such-lifecycle-configuration)
+           #:no-such-lifecycle-configuration
+           #:restore-already-in-progress)
   ;; Cloudfront distribution management
   (:export #:status
            #:origin-bucket

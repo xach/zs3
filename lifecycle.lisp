@@ -246,4 +246,6 @@ configuration is deleted with DELETE-BUCKET-LIFECYCLE."
                                    :key key
                                    :content content))))
 
-
+(define-specific-error (restore-already-in-progress
+                        "RestoreAlreadyInProgress")
+    () ())
