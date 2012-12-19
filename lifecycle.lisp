@@ -239,7 +239,11 @@ configuration is deleted with DELETE-BUCKET-LIFECYCLE."
   (let* ((content (restore-request-document days))
          (md5 (vector-md5/b64 content)))
     (submit-request (make-instance 'request
+                                   :method :post
                                    :content-md5 md5
                                    :sub-resource "restore"
                                    :bucket bucket
-                                   :key key))))
+                                   :key key
+                                   :content content))))
+
+
