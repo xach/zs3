@@ -616,8 +616,10 @@ bucket with the given name.
     <code class='name'>lifecycle-rule</code>
     <span class='args'>
       <code class='llkw'>&amp;key</code>
+      <var>action</var>
       <var>prefix</var>
       <var>days</var>
+      <var>date</var>
     </span>
     <span class='result'>=> <var>rule</var></span>
   </div>
@@ -627,11 +629,24 @@ bucket with the given name.
       to <a href='#setf-bucket-lifecycle'><tt>(SETF
 	  BUCKET-LIFECYCLE)</tt></a>. 
 
+    <p><var>action</var> should be either <tt>:expire</tt> (the
+    default) or <tt>:transition</tt>. For <tt>:expire</tt>, matching
+    objects are deleted. For <tt>:transition</tt>, matching objects
+    are transitioned to the GLACIER storage class. For more
+    information about S3-to-Glacier object transition,
+    see <a href="http://docs.amazonwebservices.com/AmazonS3/latest/dev/object-archival.html">Object
+    Archival (Transition Objects to the Glacier Storage Class)</a> in
+    the Amazon S3 Developer's Guide.
+
     <p><var>prefix</var> is a string; all objects in a bucket with
 	keys matching the prefix will be affected by the rule.
 
-    <p><var>days</var> is the number of days after which a matching
-      object is deleted.
+    <p><var>days</var> is the number of days after which an object
+    will be affected.
+
+    <p><var>date</var> is the date after which objects will be affected.
+
+    <p>Only one of <var>days</var> or <var>date</var> may be provided.
   </blockquote>
 </div>
 
