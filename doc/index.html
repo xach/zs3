@@ -650,6 +650,63 @@ bucket with the given name.
   </blockquote>
 </div>
 
+<div class='item'>
+  <div class='type'><a name='restore-object'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>restore-object</code>
+    <span class='args'>
+      <var>bucket</var>
+      <var>key</var>
+      <code class='llkw'>&amp;body</code>
+      <var>days</var>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Initiates a restoration operation on the object identified
+      by <var>bucket</var> and <var>key</var>.  A restoration
+      operation can take several hours to complete. The restored
+      object is temporarily stored with the reduced redundancy storage
+      class. The status of the operation may monitored
+      via <a href='#object-restoration-status'><tt>OBJECT-RESTORATION-STATUS</tt></a>.
+      
+    <p><var>days</var> is the number of days for which the restored
+      object should be avilable for normal retrieval before
+      transitioning back to archival storage. 
+
+    <p>Object restoration operation is only applicable to objects that
+      have been transitioned to Glacier storage by the containing
+      bucket's lifecycle configuration.
+
+    <p>For more information,
+    see <a href="http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTObjectPOSTrestore.html">POST
+    Object restore</a> in the S3 documentation.
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='object-restoration-status'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>object-restoration-status</code>
+    <span class='args'>
+      <var>bucket</var>
+      <var>key</var>
+      <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>status-string</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns a string describing the status of restoring the object
+    identified by <var>bucket</var> and <var>key</var>. If no
+    restoration is in progress, or the operation is not applicable,
+    returns NIL.
+  </blockquote>
+</div>
+
 
 
 <a name='querying-buckets'><h3>Querying Buckets</h3></a>
