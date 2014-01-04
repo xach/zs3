@@ -502,8 +502,10 @@ constraint."
         (failed '())
         (subseqs (floor (length keys) 1000)))
     (flet ((bulk-delete (keys)
-             (unless (<= (length keys) 1000)
-               (error "Can only delete 1000 objects per request."))
+             (unless (<= 1 (length keys) 1000)
+               (error "Can only delete 1 to 1000 objects per request ~
+                       (~D attempted)."
+                      (length keys)))
              (let* ((content (bulk-delete-document keys))
                     (md5 (vector-md5/b64 content)))
                (let* ((response
@@ -521,15 +523,19 @@ constraint."
                        (incf deleted)
                        (push result failed)))))))
       (loop for start from 0 by 1000
-              for end = (+ start 1000)
-              repeat subseqs do
-              (bulk-delete (subseq keys start end)))
-        (bulk-delete (subseq keys (* subseqs 1000)))
-        (values deleted failed))))
+            for end = (+ start 1000)
+            repeat subseqs do
+            (bulk-delete (subseq keys start end)))
+      (let ((remainder (subseq keys (* subseqs 1000))))
+        (when (plusp (length remainder))
+          (bulk-delete (subseq keys (* subseqs 1000)))))
+      (values deleted failed))))
 
 (defun delete-all-objects (bucket &key
                            ((:credentials *credentials*) *credentials*))
   "Delete all objects in BUCKET."
+  ;; FIXME: This should probably bucket-query and incrementally delete
+  ;; instead of fetching all keys upfront.
   (delete-objects bucket (all-keys bucket)))
 
 (defun copy-object (&key
