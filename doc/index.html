@@ -89,8 +89,8 @@ The latest version is 1.2.4, released on January 4th, 2014.
    associated S3-specific metadata and HTTP metadata.
 
  <p>For full documentation of the Amazon S3 system, see
-   the <a href="http://developer.amazonwebservices.com/connect/entry.jspa?externalID=123&categoryID=48">Amazon
-   S3 Technical Documentation</a>. ZS3 uses the REST
+   the <a href="http://aws.amazon.com/documentation/s3/">Amazon
+   S3 Documentation</a>. ZS3 uses the REST
    interface for all its operations.
 
  <p>Using Amazon CloudFront involves working with
@@ -102,8 +102,8 @@ The latest version is 1.2.4, released on January 4th, 2014.
    compared to direct S3 requests.
 
  <p>For full documentation of the Amazon CloudFront system, see the
-   <a href="http://developer.amazonwebservices.com/connect/entry.jspa?externalID=1876&categoryID=213">Amazon
-   CloudFront Technical Documentation</a>.
+   <a href="http://aws.amazon.com/documentation/cloudfront/">Amazon
+   CloudFront Documentation</a>.
 
  <p>For help with using ZS3, please see
  the <a href="http://groups.google.com/group/zs3-devel">zs3-devel</a>
@@ -138,7 +138,7 @@ The latest version is 1.2.4, released on January 4th, 2014.
   Error:
    InvalidBucketName: The specified bucket is not valid.
    For more information, see:
-     <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/BucketRestrictions.html">http://docs.amazonwebservices.com/AmazonS3/2006-03-01/BucketRestrictions.html</a>
+     <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html">http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html</a>
   [Condition of type INVALID-BUCKET-NAME]
 
   * <b>(<a href='#copy-object'>copy-object</a> :from-bucket "zs3-demo" :from-key "jenny" :to-key "j2")</b>
@@ -224,12 +224,12 @@ The latest version is 1.2.4, released on January 4th, 2014.
 
 <a name='limitations'><h2>Limitations</h2></a>
 
-<p>ZS3 supports almost all of the features of Amazon's S3 REST
+<p>ZS3 supports many of the features of Amazon's S3 REST
 interface. Some features are unsupported or incompletely supported:
 
   <ul>
     <li> No direct support
-    for <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/UsingDevPay.html">Amazon
+    for <a href="http://docs.aws.amazon.com/AmazonDevPay/latest/DevPayDeveloperGuide/Welcome.html">Amazon
     DevPay</a>
 
     <li> No support for checking the 100-Continue response to avoid
@@ -501,8 +501,8 @@ ZS3.
       </ul>
 
     <p>For more information about access policies,
-    see <a href='http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTAccessPolicy.html'>Canned
-    Access Policies</a> in the Amazon S3 developer documentation.
+    see <a href='http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl'>Canned ACL</a>
+    in the Amazon S3 developer documentation.
 
     <p>If <var>public</var> is <i>true</i>, it has the same effect as
       providing an <var>access-policy</var>
@@ -577,7 +577,7 @@ bucket with the given name.
     <p>Bucket lifecycle rules are used to control the automatic
       deletion of objects in a bucket. For more information about
       bucket lifecycle configuration,
-      see <a href="http://docs.amazonwebservices.com/AmazonS3/latest/dev/ObjectExpiration.html">Object
+      see <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/ObjectExpiration.html">Object
       Expiration</a> in the Amazon S3 developer documentation.
   </blockquote>
 </div>
@@ -640,7 +640,7 @@ bucket with the given name.
     objects are deleted. For <tt>:transition</tt>, matching objects
     are transitioned to the GLACIER storage class. For more
     information about S3-to-Glacier object transition,
-    see <a href="http://docs.amazonwebservices.com/AmazonS3/latest/dev/object-archival.html">Object
+    see <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/object-archival.html">Object
     Archival (Transition Objects to the Glacier Storage Class)</a> in
     the Amazon S3 Developer's Guide.
 
@@ -687,7 +687,7 @@ bucket with the given name.
       bucket's lifecycle configuration.
 
     <p>For more information,
-    see <a href="http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTObjectPOSTrestore.html">POST
+    see <a href="http://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPOSTrestore.html">POST
     Object restore</a> in the S3 documentation.
   </blockquote>
 </div>
@@ -808,7 +808,7 @@ bucket with the given name.
      #()</pre>
 
     <p>For more information about bucket queries,
-    see <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTBucketGET.html">GET
+    see <a href="http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGET.html">GET
     Bucket</a> in the Amazon S3 developer documentation.
 
   </blockquote>
@@ -1272,8 +1272,7 @@ bucket with the given name.
       </ul>
 
     <p>For more information about access policies,
-      see <a href='http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTAccessPolicy.html'>Canned
-	Access Policies</a> in the Amazon S3 developer documentation.
+      see <a href='http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl'>Canned ACL</a> in the Amazon S3 developer documentation.
 
     <p>If <var>public</var> is <i>true</i>, it has the same effect as
       providing an <var>access-policy</var>
@@ -1299,7 +1298,7 @@ bucket with the given name.
     accepted values are the strings "STANDARD" and
     "REDUCED_REDUNDANCY". Using other values may trigger an API error
     from S3. For more information about reduced redundancy storage,
-    see <a href="http://docs.amazonwebservices.com/AmazonS3/latest/dev/Introduction.html#RRS">Reduced
+    see <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/Introduction.html#RRS">reduced
     Redundancy Storage</a> in the Developer Guide.
 </div>
 
@@ -1513,7 +1512,7 @@ calling:
     accepted values are the strings "STANDARD" and
     "REDUCED_REDUNDANCY". Using other values may trigger an API error
     from S3. For more information about reduced redundancy storage,
-    see <a href="http://docs.amazonwebservices.com/AmazonS3/latest/dev/Introduction.html#RRS">Reduced
+    see <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/Introduction.html#RRS">Reduced
     Redundancy Storage</a> in the Developer Guide.
   </blockquote>
 </div>
@@ -1822,8 +1821,9 @@ calling:
       (for <a href='#grant'><tt>GRANT</tt></a>). <var>id</var> must be
       a string representing the person's Amazon AWS canonical ID; for
       information about getting the canonical ID, see
-      the <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/S3_ACLs.html">Access
-      Control Lists</a> in the Amazon S3 developer
+      the <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/S3_ACLs_UsingACLs.html">Managing
+      Access with ACLS</a>
+      in the Amazon S3 developer
       documentation. If <var>display-name</var> is provided, it is
       used only for printing the object in Lisp; it is ignored when
       passed to S3.
@@ -1901,7 +1901,7 @@ calling:
   the <a href='#*log-delivery*'><tt>*LOG-DELIVERY*</tt></a> group to a
   bucket of your choosing. For more information about S3 access
   logging and the logfile format, see
-  the <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/ServerLogs.html">Server
+  the <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/ServerLogs.html">Server
   Access Logging</a> in the Amazon S3
   developer documentation.
 
@@ -2086,7 +2086,7 @@ calling:
 
    <p>For full, detailed documentation of browser-based POST uploads
    and policy documents,
-   see <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/UsingHTTPPOST.html">Browser-Based
+   see <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingHTTPPOST.html">Browser-Based
    Uploads Using POST</a> in the Amazon S3 developer documentation.
   </blockquote>
 </div>
@@ -2746,9 +2746,9 @@ calling:
 <a name='references'><h2>References</h2></a>
 
   <ul>
-    <li> Amazon, <a href="http://developer.amazonwebservices.com/connect/entry.jspa?externalID=123&categoryID=48">Amazon
+    <li> Amazon, <a href="http://aws.amazon.com/documentation/s3/">Amazon
    S3 Technical Documentation</a>
-    <li> Amazon, <a href="http://developer.amazonwebservices.com/connect/entry.jspa?externalID=1876&categoryID=213">Amazon CloudFront Technical Documentation</a>
+    <li> Amazon, <a href="http://aws.amazon.com/documentation/cloudfront/">Amazon CloudFront Technical Documentation</a>
   </ul>
 
 
