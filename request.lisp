@@ -139,6 +139,14 @@
                                        &rest initargs &key
                                        &allow-other-keys)
   (declare (ignore initargs))
+  (when (eql (method request) :head)
+    ;; https://forums.aws.amazon.com/thread.jspa?messageID=340398 -
+    ;; when using the bare endpoint, the 301 redirect for a HEAD
+    ;; request does not include enough info to actually redirect. Use
+    ;; the bucket endpoint pre-emptively instead
+    (setf (endpoint request) (format nil "~A.~A"
+                                     (bucket request)
+                                     *s3-endpoint*)))
   (unless (integerp (content-length request))
     (let ((content (content request)))
       (setf (content-length request)
