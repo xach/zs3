@@ -186,7 +186,7 @@
 (define-condition bucket-restrictions (linked)
   ()
   (:default-initargs
-   :url "http://docs.amazonwebservices.com/AmazonS3/2006-03-01/BucketRestrictions.html"))
+   :url "http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html"))
 
 (define-specific-error (invalid-bucket-name "InvalidBucketName")
     (bucket-restrictions)
@@ -204,12 +204,12 @@
 (define-specific-error (ambiguous-grant "AmbiguousGrantByEmailAddress") (linked)
   ()
   (:default-initargs
-   :url "http://docs.amazonwebservices.com/AmazonS3/2006-03-01/S3_ACLs.html"))
+   :url "http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketPUTacl.html"))
 
 (define-specific-error (bucket-not-empty "BucketNotEmpty") (linked)
   ()
   (:default-initargs
-   :url "http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTBucketDELETE.html"))
+   :url "http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketDELETE.html"))
 
 (define-specific-error (invalid-logging-target "InvalidTargetBucketForLogging")
     () ())
@@ -217,11 +217,11 @@
 (define-specific-error (key-too-long "KeyTooLong") (linked)
   ()
   (:default-initargs
-   :url "http://docs.amazonwebservices.com/AmazonS3/2006-03-01/UsingKeys.html"))
+   :url "http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html"))
 
 (define-specific-error (request-time-skewed "RequestTimeTooSkewed") (linked)
   ()
   (:default-initargs
-   :url "http://docs.amazonwebservices.com/AmazonS3/2006-03-01/RESTAuthentication.html"))
+   :url "http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html#RESTAuthenticationTimeStamp"))
 
 (define-specific-error (operation-aborted "OperationAborted") () ())
