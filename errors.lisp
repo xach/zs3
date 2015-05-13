@@ -152,7 +152,7 @@
 
 (define-specific-error (malformed-xml "MalformedXML") () ())
 
-(define-condition redirect-error () ())
+(define-condition redirect-error (error) ())
 
 (define-specific-error (permanent-redirect "PermanentRedirect") (redirect-error)
   ((endpoint "Endpoint")))

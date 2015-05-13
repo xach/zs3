@@ -54,7 +54,7 @@ distribution request error responses.")
      ("Detail" (bind :detail))))
    ("RequestId" (bind :request-id))))
 
-(define-condition distribution-error ()
+(define-condition distribution-error (error)
   ((error-type
     :initarg :error-type
     :accessor distribution-error-type)
