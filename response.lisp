@@ -77,7 +77,7 @@
 
 (defgeneric content-length (response)
   (:method (response)
-    (parse-integer (bvalue :content-length (http-headers response)))))
+    (parse-integer (drakma:header-value :content-length (http-headers response)))))
 
 (defgeneric specialize-response (response)
   (:method ((response response))
