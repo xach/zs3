@@ -29,6 +29,10 @@
 
 (in-package #:zs3)
 
+(defparameter *empty-string-sha256*
+  (ironclad:byte-array-to-hex-string
+   (ironclad:digest-sequence :sha256 (make-array 0 :element-type 'octet))))
+
 (defclass digester ()
   ((hmac
     :initarg :hmac
@@ -45,8 +49,8 @@
    :newline (make-array 1 :element-type '(unsigned-byte 8)
                         :initial-element 10)))
 
-(defun make-digester (key)
-  (let ((hmac (ironclad:make-hmac (string-octets key) :sha1)))
+(defun make-digester (key &key (digest-algorithm :sha1))
+  (let ((hmac (ironclad:make-hmac (string-octets key) digest-algorithm)))
     (make-instance 'digester
                    :hmac hmac)))
 
@@ -78,6 +82,18 @@
 
 (defun file-md5/hex (file)
   (ironclad:byte-array-to-hex-string (file-md5 file)))
+
+(defun file-sha256 (file)
+  (ironclad:digest-file :sha256 file))
+
+(defun file-sha256/hex (file)
+  (ironclad:byte-array-to-hex-string (file-sha256 file)))
+
+(defun vector-sha256 (vector)
+  (ironclad:digest-sequence :sha256 vector))
+
+(defun vector-sha256/hex (vector)
+  (ironclad:byte-array-to-hex-string (vector-sha256 vector)))
 
 (defun vector-md5/b64 (vector)
   (base64:usb8-array-to-base64-string
