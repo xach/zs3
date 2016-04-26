@@ -793,7 +793,10 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
              ssl bucket (url-encode key) sub-resource))
     ((nil)
      (format nil "http~@[s~*~]://s3.amazonaws.com/~@[~A/~]~@[~A~]~@[?~A~]"
-             ssl (url-encode bucket) (url-encode key) sub-resource))))
+             ssl
+             (url-encode bucket)
+             (url-encode key :encode-slash nil)
+             sub-resource))))
 
 (defun authorized-url (&key bucket key vhost expires ssl sub-resource
                        ((:credentials *credentials*) *credentials*))
