@@ -115,6 +115,10 @@
 ;;; The following two functions were adatpted from Drakma source. The
 ;;; only change is to escape space as "%20", not #\+ and add the
 ;;; encode-slash parameter.
+;;;
+;;; See UriEncode() in
+;;; http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html
+;;; for the reasoning behind ENCODE-SLASH
 
 (defun url-encode (string &key (encode-slash t))
   "Returns a URL-encoded version of the string STRING using the
