@@ -96,9 +96,10 @@
                 do (setf state (funcall state char))))))))
 
 ;;; The following two functions were adatpted from Drakma source. The
-;;; only change is to escape space as "%20", not #\+
+;;; only change is to escape space as "%20", not #\+ and add the
+;;; encode-slash parameter.
 
-(defun url-encode (string)
+(defun url-encode (string &key (encode-slash t))
   "Returns a URL-encoded version of the string STRING using the
 LispWorks external format EXTERNAL-FORMAT."
   (let ((*print-pretty* nil))
@@ -108,6 +109,7 @@ LispWorks external format EXTERNAL-FORMAT."
             do (cond ((or (char<= #\0 char #\9)
                           (char<= #\a char #\z)
                           (char<= #\A char #\Z)
+                          (and (not encode-slash) (char= char #\/))
                           (find char "$-_.!*'()," :test #'char=))
                       (write-char char out))
                      ((char= char #\Space)
