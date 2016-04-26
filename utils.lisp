@@ -114,7 +114,7 @@ LispWorks external format EXTERNAL-FORMAT."
                       (write-char char out))
                      ((char= char #\Space)
                       (write-string "%20" out))
-                     (t (format out "%~2,'0x" (char-code char))))))))
+                     (t (format out "%~2,'0x" octet)))))))
 
 (defun alist-to-url-encoded-string (alist)
   "ALIST is supposed to be an alist of name/value pairs where both
