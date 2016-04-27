@@ -153,7 +153,7 @@ constraint."
          (bucket (bucket request)))
     (prog1
         (submit-request request)
-      (setf (redirected-endpoint endpoint bucket) nil))))
+      (setf (redirection-data endpoint bucket) nil))))
 
 
 ;;; Getting objects as vectors, strings, or files
