@@ -100,6 +100,8 @@
                          (handler 'specialize-response))
   (setf (endpoint request) (redirected-endpoint (endpoint request)
                                                 (bucket request)))
+  (ensure-amz-header request "date"
+                     (iso8601-basic-timestamp-string (date request)))
   (multiple-value-bind (body code headers uri stream must-close phrase)
       (send request :want-stream body-stream)
     (declare (ignore uri must-close))
@@ -113,31 +115,44 @@
       (if keep-stream
           (funcall handler response)
           (with-open-stream (stream stream)
-            (declare (ignore stream))
             (funcall handler response))))))
 
 (defun submit-request (request
                        &key body-stream keep-stream
-                       (handler 'specialize-response))
-  (loop
-   (handler-case
-       (let ((response (request-response request
-                                         :keep-stream keep-stream
-                                         :body-stream body-stream
-                                         :handler handler)))
-         (maybe-signal-error response)
-         (setf (request response) request)
-         (return response))
-     (temporary-redirect (condition)
-       (setf (endpoint request)
-             (request-error-endpoint condition)))
-     (permanent-redirect (condition)
-       ;; Remember the new endpoint long-term
-       (let ((new-endpoint (request-error-endpoint condition)))
-         (setf (redirected-endpoint (endpoint request)
+                         (handler 'specialize-response))
+  ;; The original endpoint has to be stashed so it can be updated as
+  ;; needed by AuthorizationHeaderMalformed responses after being
+  ;; clobbered in the request by TemporaryRedirect responses.
+  (let ((original-endpoint (endpoint request)))
+    (loop
+      (handler-case
+          (let ((response (request-response request
+                                            :keep-stream keep-stream
+                                            :body-stream body-stream
+                                            :handler handler)))
+            (maybe-signal-error response)
+            (setf (request response) request)
+            (return response))
+        (temporary-redirect (condition)
+          (setf (endpoint request)
+                (request-error-endpoint condition)))
+        (authorization-header-malformed (condition)
+          (let ((region (request-error-region condition)))
+            (setf (redirection-data original-endpoint (bucket request))
+                  (list (endpoint request)
+                        region))
+            (setf (region request) region)))
+        (permanent-redirect (condition)
+          ;; Remember the new endpoint long-term
+          (let ((new-endpoint (request-error-endpoint condition))
+                (new-region (cdr (assoc :x-amz-bucket-region
+                                        (http-headers (request-error-response condition))))))
+            (setf (redirection-data (endpoint request)
                                     (bucket request))
-               new-endpoint)
-         (setf (endpoint request) new-endpoint)))
-     (internal-error ()
-       ;; Per the S3 docs, InternalErrors should simply be retried
-       ))))
+                  (list new-endpoint (or new-region (region request))))
+            (setf (endpoint request) new-endpoint)
+            (when new-region
+              (setf (region request) new-region))))
+        (internal-error ()
+          ;; Per the S3 docs, InternalErrors should simply be retried
+          )))))

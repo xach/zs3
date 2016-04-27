@@ -225,7 +225,6 @@ constraint."
                                   :key key
                                   :extra-http-headers
                                   (parameters-alist
-                                   :connection "close"
                                    :if-modified-since
                                    (maybe-date when-modified-since)
                                    :if-unmodified-since
@@ -799,32 +798,52 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
              sub-resource))))
 
 (defun authorized-url (&key bucket key vhost expires ssl sub-resource
-                       ((:credentials *credentials*) *credentials*))
+                         ((:credentials *credentials*) *credentials*))
   (unless (and expires (integerp expires) (plusp expires))
     (error "~S option must be a positive integer" :expires))
-  (let* ((request (make-instance 'url-based-request
-                                 :method :get
-                                 :bucket bucket
-                                 :sub-resource sub-resource
-                                 :key key
-                                 :expires (unix-time expires)))
-         (parameters
-          (alist-to-url-encoded-string
-           (list (cons "AWSAccessKeyId" (access-key *credentials*))
-                 (cons "Expires" (format nil "~D" (expires request)))
-                 (cons "Signature"
-                       (signature request))))))
-    (case vhost
-      (:cname
-       (format nil "http~@[s~*~]://~A/~@[~A~]?~@[~A&~]~A"
-               ssl bucket (url-encode key) sub-resource parameters))
-      (:amazon
-       (format nil "http~@[s~*~]://~A.s3.amazonaws.com/~@[~A~]?~@[~A&~]~A"
-               ssl bucket (url-encode key) sub-resource parameters))
-      ((nil)
-       (format nil "http~@[s~*~]://s3.amazonaws.com/~@[~A/~]~@[~A~]?~@[~A&~]~A"
-               ssl (url-encode bucket) (url-encode key) sub-resource
-                   parameters)))))
+  (let ((request (make-instance 'url-based-request
+                                :method :get
+                                :bucket bucket
+                                :sub-resource sub-resource
+                                :key key
+                                :expires (unix-time expires))))
+    (setf (amz-headers request) nil)
+    (setf (parameters request)
+          (parameters-alist "X-Amz-Algorithm" "AWS4-HMAC-SHA256"
+                            "X-Amz-Credential"
+                            (format nil "~A/~A/~A/s3/aws4_request"
+                                    (access-key *credentials*)
+                                    (iso8601-basic-date-string (date request))
+                                    (region request))
+                            "X-Amz-Date" (iso8601-basic-timestamp-string (date request))
+                            "X-Amz-Expires" expires
+                            "X-Amz-SignedHeaders"
+                            (format nil "~{~A~^;~}" (signed-headers request))))
+    (push (cons "X-Amz-Signature" (request-signature request))
+          (parameters request))
+    (let ((parameters (alist-to-url-encoded-string (parameters request))))
+      (case vhost
+        (:cname
+         (format nil "http~@[s~*~]://~A/~@[~A~]?~@[~A&~]~A"
+                 ssl
+                 bucket
+                 (url-encode key :encode-slash nil)
+                 sub-resource
+                 parameters))
+        (:amazon
+         (format nil "http~@[s~*~]://~A.s3.amazonaws.com/~@[~A~]?~@[~A&~]~A"
+                 ssl
+                 bucket
+                 (url-encode key :encode-slash nil)
+                 sub-resource
+                 parameters))
+        ((nil)
+         (format nil "http~@[s~*~]://s3.amazonaws.com/~@[~A/~]~@[~A~]?~@[~A&~]~A"
+                 ssl
+                 (url-encode bucket)
+                 (url-encode key :encode-slash nil)
+                 sub-resource
+                 parameters))))))
 
 
 ;;; Miscellaneous operations

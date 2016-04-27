@@ -40,12 +40,21 @@ creating requests.")
   (list endpoint bucket (access-key *credentials*)))
 
 
-(defun redirected-endpoint (endpoint bucket &key
-                            ((:credentials *credentials*) *credentials*))
-  (gethash (redirect-key endpoint bucket) *permanent-redirects* endpoint))
+(defun redirection-data (endpoint bucket
+                         &key ((:credentials *credentials*) *credentials*))
+  (gethash (redirect-key endpoint bucket) *permanent-redirects*))
 
-(defun (setf redirected-endpoint) (new-value endpoint bucket &key
-                                   ((:credentials *credentials*) *credentials*))
+(defun redirected-endpoint (endpoint bucket
+                            &key ((:credentials *credentials*) *credentials*))
+  (or (first (redirection-data endpoint bucket)) endpoint))
+
+(defun redirected-region (endpoint bucket &key
+                          ((:credentials *credentials*) *credentials*))
+  (second (redirection-data endpoint bucket)))
+
+(defun (setf redirection-data) (new-value endpoint bucket
+                                &key ((:credentials *credentials*) *credentials*))
+  (check-type new-value list)
   (let ((key (redirect-key endpoint bucket)))
     (if (not new-value)
         (progn (remhash key *permanent-redirects*) new-value)

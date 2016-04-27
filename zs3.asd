@@ -29,6 +29,7 @@
 
 (asdf:defsystem #:zs3
   :depends-on (#:drakma
+               #:alexandria
                #:cxml
                #:ironclad
                #:puri
@@ -45,7 +46,6 @@
                (:file "xml-binding")
                (:file "xml-output")
                (:file "credentials")
-               (:file "aws4-auth")
                (:file "post")
                (:file "redirects")
                (:file "request")
@@ -57,5 +57,5 @@
                (:file "logging")
                (:file "location")
                (:file "interface")
-               (:file "lifecycle")
-               (:file "cloudfront")))
+               (:file "cloudfront")
+               (:file "lifecycle")))

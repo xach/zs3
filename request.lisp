@@ -30,8 +30,12 @@
 (in-package #:zs3)
 
 (defvar *s3-endpoint* "s3.amazonaws.com")
+(defvar *s3-region* "us-east-1")
 (defvar *use-ssl* nil)
 (defvar *use-content-md5* t)
+(defvar *signed-payload* nil
+  "When true, compute the SHA256 hash for the body of all requests
+  when submitting to AWS.")
 
 (defclass request ()
   ((credentials
@@ -42,6 +46,9 @@
    (endpoint
     :initarg :endpoint
     :accessor endpoint)
+   (region
+    :initarg :region
+    :accessor region)
    (ssl
     :initarg :ssl
     :accessor ssl)
@@ -114,6 +121,7 @@
    :credentials *credentials*
    :method :get
    :endpoint *s3-endpoint*
+   :region *s3-region*
    :ssl *use-ssl*
    :bucket nil
    :key nil
@@ -135,6 +143,19 @@
              (pathnamep (content request))
              (file-md5/b64 (content request)))))
 
+(defmethod slot-unbound ((class t) (request request) (slot (eql 'signed-string)))
+  (setf (signed-string request)
+        (format nil "~{~A~^~%~}" (string-to-sign-lines request))))
+
+(defgeneric amz-header-value (request name)
+  (:method (request name)
+    (cdr (assoc name (amz-headers request) :test 'string=))))
+
+(defgeneric ensure-amz-header (request name value)
+  (:method (request name value)
+    (unless (amz-header-value request name)
+      (push (cons name value) (amz-headers request)))))
+
 (defmethod initialize-instance :after ((request request)
                                        &rest initargs &key
                                        &allow-other-keys)
@@ -147,6 +168,14 @@
     (setf (endpoint request) (format nil "~A.~A"
                                      (bucket request)
                                      *s3-endpoint*)))
+  (ensure-amz-header request "date"
+                     (iso8601-basic-timestamp-string (date request)))
+  (ensure-amz-header request "content-sha256"
+                     (payload-sha256 request))
+  (let ((target-region (redirected-region (endpoint request)
+                                          (bucket request))))
+    (when target-region
+      (setf (region request) target-region)))
   (unless (integerp (content-length request))
     (let ((content (content request)))
       (setf (content-length request)
@@ -216,41 +245,121 @@
            collect (cons (format nil "x-amz-meta-~(~A~)" key)
                          value)))))
 
-(defgeneric amazon-header-signing-lines (request)
-  (:method (request)
-    ;; FIXME: handle values with commas, and repeated headers
-    (let* ((headers (all-amazon-headers request))
-           (sorted (sort headers #'string< :key #'car)))
-      (loop for ((key . value)) on sorted
-            collect (format nil "~A:~A" key value)))))
-
 (defgeneric date-string (request)
   (:method (request)
     (http-date-string (date request))))
 
-(defgeneric signature (request)
-  (:method (request)
-    (let ((digester (make-digester (secret-key request))))
-      (flet ((maybe-add-line (string digester)
-               (if string
-                   (add-line string digester)
-                   (add-newline digester))))
-        (add-line (http-method request) digester)
-        (maybe-add-line (content-md5 request) digester)
-        (maybe-add-line (content-type request) digester)
-        (add-line (date-string request) digester)
-        (dolist (line (amazon-header-signing-lines request))
-          (add-line line digester))
-        (add-string (signed-path request) digester)
-        (setf (signed-string request)
-              (get-output-stream-string (signed-stream digester)))
-        (digest64 digester)))))
+;;; AWS 4 authorization
 
-(defgeneric authorization-header-value (request)
-  (:method (request)
-    (format nil "AWS ~A:~A"
-            (access-key request)
-            (signature request))))
+(defun headers-for-signing (request)
+  (append (all-amazon-headers request)
+          (extra-http-headers request)
+          (parameters-alist "host" (host request)
+                            "content-type" (content-type request))))
+
+(defun canonical-headers (headers)
+  (flet ((trim (string)
+           (string-trim " " string)))
+    (let ((encoded
+           (loop for (name . value) in headers
+                 collect (cons (string-downcase name)
+                               (trim value)))))
+      (sort encoded #'string< :key 'car))))
+
+(defun signed-headers (request)
+  (mapcar 'first (canonical-headers (headers-for-signing request))))
+
+(defun parameters-for-signing (request)
+  (cond ((sub-resource request)
+         (list (cons (sub-resource request) "")))
+        (t
+         (parameters request))))
+
+(defun canonical-parameters (parameters)
+  (let ((encoded
+         (loop for (name . value) in parameters
+               collect (cons
+                        (url-encode name)
+                        (url-encode value)))))
+    (sort encoded #'string< :key 'car)))
+
+(defun canonical-parameters-string (request)
+  (format nil "~{~A=~A~^&~}"
+                (alist-plist (canonical-parameters
+                              (parameters-for-signing request)))))
+
+(defun path-to-sign (request)
+  "Everything in the PATH of the request, up to the first ?"
+  (let ((path (request-path request)))
+    (subseq path 0 (position #\? path))))
+
+(defun canonicalized-request-lines (request)
+  "Return a list of lines canonicalizing the request according to
+http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html."
+  (let* ((headers (headers-for-signing request))
+         (canonical-headers (canonical-headers headers)))
+    (alexandria:flatten
+     (list (http-method request)
+           (path-to-sign request)
+           (canonical-parameters-string request)
+           (loop for (name . value) in canonical-headers
+                 collect (format nil "~A:~A" name value))
+           ""
+           (format nil "~{~A~^;~}" (signed-headers request))
+           (or (amz-header-value request "content-sha256")
+               "UNSIGNED-PAYLOAD")))))
+
+(defun string-to-sign-lines (request)
+  "Return a list of strings to sign to construct the Authorization header."
+  (list "AWS4-HMAC-SHA256"
+        (iso8601-basic-timestamp-string (date request))
+        (with-output-to-string (s)
+          (format s "~A/~A/s3/aws4_request"
+                  (iso8601-basic-date-string (date request))
+                  (region request)))
+        (strings-sha256/hex (canonicalized-request-lines request))))
+
+(defun make-signing-key (credentials &key region service)
+  "The signing key is derived from the credentials, region, date, and
+service. A signing key could be saved, shared, and reused, but ZS3 just recomputes it all the time instead."
+  (let* ((k1 (format nil "AWS4~A" (secret-key credentials)))
+         (date-key (hmac-sha256 k1 (iso8601-basic-date-string)))
+         (region-key (hmac-sha256 date-key region))
+         (service-key (hmac-sha256 region-key service)))
+    (hmac-sha256 service-key "aws4_request")))
+
+(defun payload-sha256 (request)
+  (if *signed-payload*
+      (let ((payload (content request)))
+        (etypecase payload
+          ((or null empty-vector)
+           *empty-string-sha256*)
+          (vector
+           (vector-sha256/hex payload))
+          (pathname
+           (file-sha256/hex payload))))
+      "UNSIGNED-PAYLOAD"))
+
+(defun request-signature (request)
+  (let ((key (make-signing-key *credentials*
+                               :region (region request)
+                               :service "s3")))
+    (strings-hmac-sha256/hex key (string-to-sign-lines request) )))
+
+(defmethod authorization-header-value ((request request))
+  (let ((key (make-signing-key *credentials*
+                               :region (region request)
+                               :service "s3"))
+        (lines (string-to-sign-lines request)))
+    (with-output-to-string (s)
+      (write-string "AWS4-HMAC-SHA256" s)
+      (format s " Credential=~A/~A/~A/s3/aws4_request"
+              (access-key *credentials*)
+              (iso8601-basic-date-string (date request))
+              (region request))
+      (format s ",SignedHeaders=~{~A~^;~}" (signed-headers request))
+      (format s ",Signature=~A"
+              (strings-hmac-sha256/hex key lines)))))
 
 (defgeneric drakma-headers (request)
   (:method (request)
@@ -289,6 +398,7 @@
   (:method (request &key want-stream)
     (let ((continuation
            (drakma:http-request (url request)
+                                :close t
                                 :redirect nil
                                 :want-stream want-stream
                                 :content-type (content-type request)

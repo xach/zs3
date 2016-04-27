@@ -10,63 +10,72 @@
 
 (setf *credentials* (file-credentials "~/.aws"))
 
-(when (bucket-exists-p "zs3-tests")
-  (delete-bucket "zs3-tests"))
+(defparameter *test-bucket* "zs3-tests33")
 
-(create-bucket "zs3-tests")
+(when (bucket-exists-p *test-bucket*)
+  (delete-bucket *test-bucket*))
 
-(put-file "/etc/issue" "zs3-tests" "printcap")
-(put-string "Hello, world" "zs3-tests" "hello")
-(put-vector (octet-vector 8 6 7 5 3 0 9) "zs3-tests" "jenny")
+(create-bucket *test-bucket*)
+
+(put-file "/etc/issue" *test-bucket* "printcap")
+(put-string "Hello, world" *test-bucket* "hello")
+(put-vector (octet-vector 8 6 7 5 3 0 9) *test-bucket* "jenny")
 
 (all-buckets)
-(all-keys "zs3-tests")
+(all-keys *test-bucket*)
 
-(delete-object "zs3-tests" "printcap")
-(delete-object "zs3-tests" "hello")
-(delete-object "zs3-tests" "jenny")
+(delete-object *test-bucket* "printcap")
+(delete-object *test-bucket* "hello")
+(delete-object *test-bucket* "jenny")
 
-(put-string "Hello, world" "zs3-tests" "hello" :start 1 :end 5)
-(string= (get-string "zs3-tests" "hello")
+(put-string "Hello, world" *test-bucket* "hello" :start 1 :end 5)
+(string= (get-string *test-bucket* "hello")
          (subseq "Hello, world" 1 5))
 
-(put-file "tests.lisp" "zs3-tests" "self" :start 1 :end 5)
-(string= (get-string "zs3-tests" "self")
+(put-file "tests.lisp" *test-bucket* "self" :start 1 :end 5)
+(string= (get-string *test-bucket* "self")
          ";;; ")
 
 (defparameter *jenny* (octet-vector 8 6 7 5 3 0 9))
-(put-vector *jenny* "zs3-tests" "jenny" :start 1 :end 6)
+(put-vector *jenny* *test-bucket* "jenny" :start 1 :end 6)
 
-(equalp (get-vector "zs3-tests" "jenny")
+(equalp (get-vector *test-bucket* "jenny")
         (subseq *jenny* 1 6))
 
 
-(delete-object "zs3-tests" "hello")
-(delete-object "zs3-tests" "self")
-(delete-object "zs3-tests" "jenny")
+(delete-object *test-bucket* "hello")
+(delete-object *test-bucket* "self")
+(delete-object *test-bucket* "jenny")
 
 
 ;;; Testing signing issues
 
-(put-string "Slashdot" "zs3-tests" "slash/dot")
-(put-string "Tildedot" "zs3-tests" "slash~dot")
-(put-string "Spacedot" "zs3-tests" "slash dot")
+(put-string "Slashdot" *test-bucket* "slash/dot")
+(put-string "Tildedot" *test-bucket* "slash~dot")
+(put-string "Spacedot" *test-bucket* "slash dot")
 
-(delete-object "zs3-tests" "slash/dot")
-(delete-object "zs3-tests" "slash~dot")
-(delete-object "zs3-tests" "slash dot")
+(delete-object *test-bucket* "slash/dot")
+(delete-object *test-bucket* "slash~dot")
+(delete-object *test-bucket* "slash dot")
 
 ;;; Subresources
 
-(put-string "Fiddle dee dee" "zs3-tests" "fiddle")
-(make-public :bucket "zs3-tests" :key "fiddle")
-(make-private :bucket "zs3-tests" :key "fiddle")
-(delete-object "zs3-tests" "fiddle")
+(put-string "Fiddle dee dee" *test-bucket* "fiddle")
+(make-public :bucket *test-bucket* :key "fiddle")
+(make-private :bucket *test-bucket* :key "fiddle")
+(delete-object *test-bucket* "fiddle")
+
+;;; Different regions
+
+(delete-bucket *test-bucket*)
+
+(create-bucket *test-bucket* :location "eu-central-1")
+(put-string "Hello, world" *test-bucket* "hello")
 
 ;;; CloudFront distributions
 
 (defparameter *distro*
-  (create-distribution "zs3-tests"
+  (create-distribution *test-bucket*
                        :cnames "zs3-tests.cdn.wigflip.com"
                        :enabled nil
                        :comment "Testing, 1 2 3"))
@@ -75,4 +84,4 @@
   (sleep 240)
   (delete-distribution *distro*))
 
-(delete-bucket "zs3-tests")
+(delete-bucket *test-bucket*)
