@@ -40,6 +40,9 @@
 (deftype octet-vector (&optional size)
   `(simple-array octet (,size)))
 
+(deftype empty-vector ()
+  `(vector * 0))
+
 (defun http-date-string (&optional (time (get-universal-time)))
   "Return a HTTP-style date string."
   (multiple-value-bind (second minute hour day month year day-of-week)
