@@ -161,12 +161,14 @@
   ((endpoint "Endpoint")))
 
 (define-specific-error (signature-mismatch "SignatureDoesNotMatch") ()
-  ((string-to-sign "StringToSign"))
+  ((string-to-sign "StringToSign")
+   (canonical-request "CanonicalRequest"))
   (:report (lambda (condition stream)
              (report-request-error condition stream)
-             (format stream "You signed: ~S~%Amazon signed: ~S"
+             (format stream "You signed: ~S~%Amazon signed: ~S~%and~%~S"
                             (signed-string (request-error-request condition))
-                            (request-error-string-to-sign condition)))))
+                            (request-error-string-to-sign condition)
+                            (request-error-canonical-request condition)))))
 
 (define-specific-error (precondition-failed "PreconditionFailed") ()
   ((condition "Condition")))
