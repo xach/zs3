@@ -89,6 +89,16 @@ constraint."
     (when (plusp (length location))
       location)))
 
+(defun bucket-region (bucket
+                      &key ((:credentials *credentials*) *credentials*))
+  (or (bucket-location bucket)
+      "us-east-1"))
+
+(defun region-endpoint (region)
+  (if (string= region "us-east-1")
+      "s3.amazonaws.com"
+      (format nil "s3-~A.amazonaws.com" region)))
+
 (defun query-bucket (bucket &key prefix marker max-keys delimiter
                      ((:credentials *credentials*) *credentials*))
   (submit-request (make-instance 'request
@@ -801,12 +811,20 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
                          ((:credentials *credentials*) *credentials*))
   (unless (and expires (integerp expires) (plusp expires))
     (error "~S option must be a positive integer" :expires))
-  (let ((request (make-instance 'url-based-request
-                                :method :get
-                                :bucket bucket
-                                :sub-resource sub-resource
-                                :key key
-                                :expires (unix-time expires))))
+  (let* ((region (bucket-region bucket))
+         (region-endpoint (region-endpoint region))
+         (endpoint (case vhost
+                     (:cname bucket)
+                     (:amazon (format nil "~A.~A" bucket region-endpoint))
+                     ((nil) region-endpoint)))
+         (request (make-instance 'url-based-request
+                                 :method :get
+                                 :bucket bucket
+                                 :region region
+                                 :endpoint endpoint
+                                 :sub-resource sub-resource
+                                 :key key
+                                 :expires (unix-time expires))))
     (setf (amz-headers request) nil)
     (setf (parameters request)
           (parameters-alist "X-Amz-Algorithm" "AWS4-HMAC-SHA256"
@@ -831,15 +849,16 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
                  sub-resource
                  parameters))
         (:amazon
-         (format nil "http~@[s~*~]://~A.s3.amazonaws.com/~@[~A~]?~@[~A&~]~A"
+         (format nil "http~@[s~*~]://~A/~@[~A~]?~@[~A&~]~A"
                  ssl
-                 bucket
+                 endpoint
                  (url-encode key :encode-slash nil)
                  sub-resource
                  parameters))
         ((nil)
-         (format nil "http~@[s~*~]://s3.amazonaws.com/~@[~A/~]~@[~A~]?~@[~A&~]~A"
+         (format nil "http~@[s~*~]://~A/~@[~A/~]~@[~A~]?~@[~A&~]~A"
                  ssl
+                 endpoint
                  (url-encode bucket)
                  (url-encode key :encode-slash nil)
                  sub-resource
