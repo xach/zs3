@@ -176,6 +176,8 @@
                                           (bucket request))))
     (when target-region
       (setf (region request) target-region)))
+  (when (content-md5 request)
+    (push (cons "Content-MD5" (content-md5 request)) (extra-http-headers request)))
   (unless (integerp (content-length request))
     (let ((content (content request)))
       (setf (content-length request)
@@ -369,8 +371,6 @@ service. A signing key could be saved, shared, and reused, but ZS3 just recomput
                   (cons "Authorization"
                         (authorization-header-value request))
                   (all-amazon-headers request))))
-      (when (content-md5 request)
-        (push (cons "Content-MD5" (content-md5 request)) base))
       (append (extra-http-headers request) base))))
 
 (defgeneric url (request)
