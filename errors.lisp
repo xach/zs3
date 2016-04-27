@@ -173,6 +173,9 @@
 (define-specific-error (precondition-failed "PreconditionFailed") ()
   ((condition "Condition")))
 
+(define-specific-error (authorization-header-malformed
+                        "AuthorizationHeaderMalformed") ()
+  ((region "Region")))
 
 
 (define-condition linked ()
