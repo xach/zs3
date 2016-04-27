@@ -45,6 +45,7 @@
                (:file "xml-binding")
                (:file "xml-output")
                (:file "credentials")
+               (:file "aws4-auth")
                (:file "post")
                (:file "redirects")
                (:file "request")

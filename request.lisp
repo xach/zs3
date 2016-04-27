@@ -155,6 +155,11 @@
               (pathname (file-size content))
               (vector (length content)))))))
 
+(defgeneric host (request)
+  (:method ((request request))
+    (or (redirected-endpoint (endpoint request) (bucket request))
+        (endpoint request))))
+
 (defgeneric http-method (request)
   (:method (request)
     (string-upcase (method request))))
@@ -240,15 +245,19 @@
         (setf (signed-string request)
               (get-output-stream-string (signed-stream digester)))
         (digest64 digester)))))
-        
+
+(defgeneric authorization-header-value (request)
+  (:method (request)
+    (format nil "AWS ~A:~A"
+            (access-key request)
+            (signature request))))
+
 (defgeneric drakma-headers (request)
   (:method (request)
     (let ((base
            (list* (cons "Date" (http-date-string (date request)))
                   (cons "Authorization"
-                        (format nil "AWS ~A:~A"
-                                (access-key request)
-                                (signature request)))
+                        (authorization-header-value request))
                   (all-amazon-headers request))))
       (when (content-md5 request)
         (push (cons "Content-MD5" (content-md5 request)) base))

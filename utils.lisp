@@ -328,3 +328,6 @@ supplied or is NIL, create a fresh buffer of length N and return it."
   (with-open-file (stream file :element-type 'octet)
     (stream-subset-vector stream start end)))
 
+(defun alist-plist (alist)
+  (loop for (key . value) in alist
+        collect key collect value))
