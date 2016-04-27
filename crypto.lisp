@@ -81,8 +81,6 @@
     (base64:usb8-array-to-base64-string
      (ironclad:hmac-digest (hmac digester)))))
 
-
-
 (defun file-md5 (file)
    (ironclad:digest-file :md5 file))
 
@@ -143,7 +141,3 @@
           (add-string s digester))
         (add-string strings digester))
     (digest digester)))
-
-
-
-
