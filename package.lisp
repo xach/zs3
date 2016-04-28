@@ -100,6 +100,10 @@
            #:logging-setup)
   ;; Misc.
   (:export #:*use-ssl*
+           #:*s3-endpoint*
+           #:*s3-region*
+           #:*use-content-md5*
+           #:*signed-payload*
            #:make-post-policy
            #:head
            #:authorized-url
