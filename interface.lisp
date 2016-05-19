@@ -834,7 +834,7 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
                                     (iso8601-basic-date-string (date request))
                                     (region request))
                             "X-Amz-Date" (iso8601-basic-timestamp-string (date request))
-                            "X-Amz-Expires" expires
+                            "X-Amz-Expires" (- expires (get-universal-time))
                             "X-Amz-SignedHeaders"
                             (format nil "~{~A~^;~}" (signed-headers request))))
     (push (cons "X-Amz-Signature" (request-signature request))
