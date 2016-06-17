@@ -1,5 +1,5 @@
 ;;;;
-;;;; Copyright (c) 2008 Zachary Beane, All Rights Reserved
+;;;; Copyright (c) 2008, 2015 Zachary Beane, All Rights Reserved
 ;;;;
 ;;;; Redistribution and use in source and binary forms, with or without
 ;;;; modification, are permitted provided that the following conditions
@@ -179,7 +179,7 @@ constraint."
 (defun make-file-writer-handler (file &key (if-exists :supersede))
   (lambda (response)
     (check-request-success response)
-    (with-open-stream (input (body response))
+    (let ((input (body response)))
       (with-open-file (output file :direction :output
                                    :if-exists if-exists
                                    :element-type '(unsigned-byte 8))
@@ -191,7 +191,7 @@ constraint."
   (check-request-success response)
   (let ((buffer (make-octet-vector (content-length response))))
     (setf (body response)
-          (with-open-stream (input (body response))
+          (let ((input (body response)))
             (read-sequence buffer input)
             buffer))
     response))
@@ -211,15 +211,15 @@ constraint."
 
 
 (defun get-object (bucket key &key
-                   when-modified-since
-                   unless-modified-since
-                   when-etag-matches
-                   unless-etag-matches
-                   start end
-                   (output :vector)
-                   (if-exists :supersede)
-                   (string-external-format :utf-8)
-                   ((:credentials *credentials*) *credentials*))
+                                when-modified-since
+                                unless-modified-since
+                                when-etag-matches
+                                unless-etag-matches
+                                start end
+                                (output :vector)
+                                (if-exists :supersede)
+                                (string-external-format :utf-8)
+                                ((:credentials *credentials*) *credentials*))
   (flet ((range-argument (start end)
            (when start
              (format nil "bytes=~D-~@[~D~]" start (and end (1- end)))))
@@ -229,36 +229,46 @@ constraint."
       (setf start 0))
     (when (and start end (<= end start))
       (error "START must be less than END."))
-    (let ((request (make-instance 'request
-                                  :method :get
-                                  :bucket bucket
-                                  :key key
-                                  :extra-http-headers
-                                  (parameters-alist
-                                   :if-modified-since
-                                   (maybe-date when-modified-since)
-                                   :if-unmodified-since
-                                   (maybe-date unless-modified-since)
-                                   :if-match when-etag-matches
-                                   :if-none-match unless-etag-matches
-                                   :range (range-argument start end))))
-          (handler (cond ((eql output :vector)
-                          'vector-writer-handler)
-                         ((eql output :string)
-                          (make-string-writer-handler string-external-format))
-                         ((eql output :stream)
-                          'stream-identity-handler)
-                         ((or (stringp output)
-                              (pathnamep output))
-                          (make-file-writer-handler output :if-exists if-exists))
-                         (t
-                          (error "Unknown ~S option ~S -- should be ~
+    (let* ((security-token (security-token *credentials*))
+           (request (make-instance 'request
+                                   :method :get
+                                   :bucket bucket
+                                   :key key
+                                   :amz-headers
+                                   (when security-token
+                                     (list (cons "security-token" security-token)))
+                                   :extra-http-headers
+                                   (parameters-alist
+                                    ;; nlevine 2016-06-15 -- not only is this apparently
+                                    ;; unnecessary, it also sends "connection" in the
+                                    ;; signed headers, which results in a
+                                    ;; SignatureDoesNotMatch error.
+                                    ;;  :connection (unless *use-keep-alive* "close")
+                                    :if-modified-since
+                                    (maybe-date when-modified-since)
+                                    :if-unmodified-since
+                                    (maybe-date unless-modified-since)
+                                    :if-match when-etag-matches
+                                    :if-none-match unless-etag-matches
+                                    :range (range-argument start end))))
+           (handler (cond ((eql output :vector)
+                           'vector-writer-handler)
+                          ((eql output :string)
+                           (make-string-writer-handler string-external-format))
+                          ((eql output :stream)
+                           'stream-identity-handler)
+                          ((or (stringp output)
+                               (pathnamep output))
+                           (make-file-writer-handler output :if-exists if-exists))
+                          (t
+                           (error "Unknown ~S option ~S -- should be ~
                                   :VECTOR, :STRING, :STREAM, or a pathname"
                                  :output output)))))
       (catch 'not-modified
         (handler-case
             (let ((response (submit-request request
-                                            :keep-stream (eql output :stream)
+                                            :keep-stream (or (eql output :stream)
+                                                             *use-keep-alive*)
                                             :body-stream t
                                             :handler handler)))
               (values (body response) (http-headers response)))
@@ -341,7 +351,9 @@ constraint."
                                             string-external-format))
            ((or vector pathname) object)))
         (content-length t)
-        (policy-header (access-policy-header access-policy public)))
+        (policy-header (access-policy-header access-policy public))
+        (security-token (security-token *credentials*)))
+    (declare (ignore policy-header))
     (setf storage-class (or storage-class "STANDARD"))
     (submit-request (make-instance 'request
                                    :method :put
@@ -349,9 +361,8 @@ constraint."
                                    :key key
                                    :metadata metadata
                                    :amz-headers
-                                   (append policy-header
-                                           (list (cons "storage-class"
-                                                       storage-class)))
+                                   (when security-token
+                                     (list (cons "security-token" security-token)))
                                    :extra-http-headers
                                    (parameters-alist
                                     :cache-control cache-control
@@ -474,12 +485,16 @@ constraint."
 ;;; Delete & copy objects
 
 (defun delete-object (bucket key &key
-                      ((:credentials *credentials*) *credentials*))
+                        ((:credentials *credentials*) *credentials*))
   "Delete one object from BUCKET identified by KEY."
-  (submit-request (make-instance 'request
-                                 :method :delete
-                                 :bucket bucket
-                                 :key key)))
+  (let ((security-token (security-token *credentials*)))
+    (submit-request (make-instance 'request
+                                   :method :delete
+                                   :bucket bucket
+                                   :key key
+                                   :amz-headers
+                                   (when security-token
+                                     (list (cons "security-token" security-token)))))))
 
 (defun bulk-delete-document (keys)
   (coerce

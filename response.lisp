@@ -1,5 +1,5 @@
 ;;;;
-;;;; Copyright (c) 2008 Zachary Beane, All Rights Reserved
+;;;; Copyright (c) 2008, 2015 Zachary Beane, All Rights Reserved
 ;;;;
 ;;;; Redistribution and use in source and binary forms, with or without
 ;;;; modification, are permitted provided that the following conditions
@@ -28,6 +28,7 @@
 ;;;; response.lisp
 
 (in-package #:zs3)
+
 
 (defvar *response-element-classes*
   (make-hash-table :test 'equal))
@@ -82,7 +83,7 @@
 (defgeneric specialize-response (response)
   (:method ((response response))
     (cond ((or (null (body response))
-               (and (not (streamp (body response))) 
+               (and (not (streamp (body response)))
                     (zerop (length (body response)))))
            response)
           (t
@@ -94,6 +95,13 @@
                (specialized-initialize response source))
              response)))))
 
+
+(defun close-keep-alive ()
+  (when *keep-alive-stream*
+    (ignore-errors (close *keep-alive-stream*))
+    (setq *keep-alive-stream* nil)))
+
+
 (defun request-response (request &key
                          body-stream
                          keep-stream
@@ -103,8 +111,9 @@
   (ensure-amz-header request "date"
                      (iso8601-basic-timestamp-string (date request)))
   (multiple-value-bind (body code headers uri stream must-close phrase)
-      (send request :want-stream body-stream)
-    (declare (ignore uri must-close))
+      (send request :want-stream body-stream
+                    :stream *keep-alive-stream*)
+    (declare (ignore uri))
     (let ((response
            (make-instance 'response
                           :request request
@@ -112,13 +121,21 @@
                           :http-code code
                           :http-phrase phrase
                           :http-headers headers)))
-      (if keep-stream
-          (funcall handler response)
+      (if (and keep-stream (not must-close))
+          (progn
+            (when *use-keep-alive*
+              (unless (eq *keep-alive-stream* stream)
+                (close-keep-alive)
+                (setq *keep-alive-stream* stream)))
+            (funcall handler response))
           (with-open-stream (stream stream)
+            (declare (ignorable stream))
+            (setq *keep-alive-stream* nil)
             (funcall handler response))))))
 
 (defun submit-request (request
-                       &key body-stream keep-stream
+                       &key body-stream
+                         (keep-stream *use-keep-alive*)
                          (handler 'specialize-response))
   ;; The original endpoint has to be stashed so it can be updated as
   ;; needed by AuthorizationHeaderMalformed responses after being
@@ -155,4 +172,9 @@
               (setf (region request) new-region))))
         (internal-error ()
           ;; Per the S3 docs, InternalErrors should simply be retried
-          )))))
+          (close-keep-alive))
+        (error (e)
+          ;; Ensure that we don't reuse the stream, it may be the source of
+          ;; our error.  Then resignal.
+          (close-keep-alive)
+          (error e))))))

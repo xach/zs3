@@ -1,5 +1,5 @@
 ;;;;
-;;;; Copyright (c) 2008 Zachary Beane, All Rights Reserved
+;;;; Copyright (c) 2008, 2015 Zachary Beane, All Rights Reserved
 ;;;;
 ;;;; Redistribution and use in source and binary forms, with or without
 ;;;; modification, are permitted provided that the following conditions
@@ -55,6 +55,12 @@ request.")
   (:method ((list cons))
     (second list)))
 
+(defgeneric security-token (credentials)
+  (:method ((object t))
+    nil)
+  (:method ((list cons))
+    (third list)))
+
 
 ;;; Lazy-loading credentials
 
@@ -68,6 +74,10 @@ request.")
                          (slot (eql 'secret-key)))
   (nth-value 1 (initialize-lazy-credentials credentials)))
 
+(defmethod slot-unbound ((class t) (credentials lazy-credentials-mixin)
+                         (slot (eql 'security-token)))
+  (nth-value 2 (initialize-lazy-credentials credentials)))
+
 
 ;;; Loading credentials from a file
 
@@ -78,13 +88,16 @@ request.")
    (access-key
     :accessor access-key)
    (secret-key
-    :accessor secret-key)))
+    :accessor secret-key)
+   (security-token
+    :accessor security-token)))
 
 (defgeneric initialize-lazy-credentials (credentials)
   (:method ((credentials file-credentials))
     (with-open-file (stream (file credentials))
       (values (setf (access-key credentials) (read-line stream))
-              (setf (secret-key credentials) (read-line stream))))))
+              (setf (secret-key credentials) (read-line stream))
+              (setf (security-token credentials) (read-line stream nil))))))
 
 (defun file-credentials (file)
   (make-instance 'file-credentials

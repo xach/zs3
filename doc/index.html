@@ -320,6 +320,23 @@ ZS3.
 
 
 <div class='item'>
+  <div class='type'><a name='security-token'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>security-token</code>
+    <span class='args'>
+      <var>credentials</var>
+    </span>
+    <span class='result'>=> <var>security-token-string</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the security token string for <var>credentials</var>,
+    or NIL if there is no associated security token.</p>
+  </blockquote>
+</div>
+
+
+<div class='item'>
   <div class='type'><a name='secret-key'>[Generic function]</a></div>
   <div class='signature'>
     <code class='name'>secret-key</code>
@@ -2029,6 +2046,36 @@ calling:
       default is NIL.
   </blockquote>
 </div>
+
+<div class='item'>
+  <div class='type'><a name='*use-keep-alive*'>[Special variable]</a></div>
+  <div class='signature'>
+    <code class='name'>*use-keep-alive*</code>
+  </div>
+
+  <blockquote class='description'>
+    <p>When <i>true</i>, HTTP keep-alives are used to reuse a single
+    network connection for multiple requests.</p>
+  </blockquote>
+</div>
+
+<div class='item'>
+  <div class='type'><a name='with-keep-alive'>[Macro]</a></div>
+  <div class='signature'>
+    <code class='name'>with-keep-alive</code>
+    <span class='args'>
+      <code class='llkw'>&amp;body</code> <var>body</var>
+    </span>
+    <span class='result'>=> |</span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Evaluate <var>body</var> in a context
+    where <a href='#*use-keep-alive*'><tt>*USE-KEEP-ALIVE*</tt></a>
+    is <i>true</i>.
+  </blockquote>
+</div>
+
 
 
 <div class='item'>

@@ -1,5 +1,5 @@
 ;;;;
-;;;; Copyright (c) 2008 Zachary Beane, All Rights Reserved
+;;;; Copyright (c) 2008, 2015 Zachary Beane, All Rights Reserved
 ;;;;
 ;;;; Redistribution and use in source and binary forms, with or without
 ;;;; modification, are permitted provided that the following conditions
@@ -36,6 +36,32 @@
 (defvar *signed-payload* nil
   "When true, compute the SHA256 hash for the body of all requests
   when submitting to AWS.")
+
+(defvar *use-keep-alive* nil
+  "When set to t, this library uses the drakma client with
+   keep alive enabled. This means that a stream will be reused for multiple
+   requests. The stream itself will be bound to *keep-alive-stream*")
+
+
+(defvar *keep-alive-stream* nil
+  "When using http keep-alive, this variable is bound to the stream
+   which is being kept open for repeated usage.  It is up to client code
+   to ensure that only one thread at a time is making requests that
+   could use the same stream object concurrently.  One way to achive
+   this would be to create a separate binding per thread.  The
+   with-keep-alive macro can be useful here.")
+
+
+(defmacro with-keep-alive (&body body)
+  "Create thread-local bindings of the zs3 keep-alive variables around a
+   body of code.  Ensure the stream is closed at exit."
+  `(let ((*use-keep-alive* t)
+         (*keep-alive-stream* nil))
+     (unwind-protect
+         (progn ,@body)
+       (when *keep-alive-stream*
+         (ignore-errors (close *keep-alive-stream*))))))
+
 
 (defclass request ()
   ((credentials
@@ -395,13 +421,15 @@ service. A signing key could be saved, shared, and reused, but ZS3 just recomput
           (read-exactly rest)
           (funcall fun (subseq buffer 0 rest) nil))))))
 
-(defgeneric send (request &key want-stream)
-  (:method (request &key want-stream)
+(defgeneric send (request &key want-stream stream)
+  (:method (request &key want-stream stream)
     (let ((continuation
            (drakma:http-request (url request)
-                                :close t
                                 :redirect nil
                                 :want-stream want-stream
+                                :stream stream
+                                :keep-alive *use-keep-alive*
+                                :close (not *use-keep-alive*)
                                 :content-type (content-type request)
                                 :additional-headers (drakma-headers request)
                                 :method (method request)
@@ -413,10 +441,12 @@ service. A signing key could be saved, shared, and reused, but ZS3 just recomput
         (if (pathnamep content)
             (send-file-content continuation request)
             (funcall continuation content nil))))))
-    
+
 (defmethod access-key ((request request))
   (access-key (credentials request)))
 
 (defmethod secret-key ((request request))
   (secret-key (credentials request)))
 
+(defmethod security-token ((request request))
+  (security-token (credentials request)))

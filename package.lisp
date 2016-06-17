@@ -1,5 +1,5 @@
 ;;;;
-;;;; Copyright (c) 2008 Zachary Beane, All Rights Reserved
+;;;; Copyright (c) 2008, 2015 Zachary Beane, All Rights Reserved
 ;;;;
 ;;;; Redistribution and use in source and binary forms, with or without
 ;;;; modification, are permitted provided that the following conditions
@@ -100,6 +100,9 @@
            #:logging-setup)
   ;; Misc.
   (:export #:*use-ssl*
+           #:*use-keep-alive*
+           #:*keep-alive-stream*
+           #:with-keep-alive
            #:*s3-endpoint*
            #:*s3-region*
            #:*use-content-md5*
@@ -171,6 +174,3 @@
                           #:text
                           #:attribute
                           #:attribute*))
-
-
-
