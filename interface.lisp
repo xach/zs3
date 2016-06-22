@@ -332,17 +332,17 @@ constraint."
 
 
 (defun put-object (object bucket key &key
-                   access-policy
-                   public
-                   metadata
-                   (string-external-format :utf-8)
-                   cache-control
-                   content-encoding
-                   content-disposition
-                   expires
-                   content-type
-                   (storage-class "STANDARD")
-                   ((:credentials *credentials*) *credentials*))
+                                       access-policy
+                                       public
+                                       metadata
+                                       (string-external-format :utf-8)
+                                       cache-control
+                                       content-encoding
+                                       content-disposition
+                                       expires
+                                       content-type
+                                       (storage-class "STANDARD")
+                                       ((:credentials *credentials*) *credentials*))
   (let ((content
          (etypecase object
            (string
@@ -353,7 +353,6 @@ constraint."
         (content-length t)
         (policy-header (access-policy-header access-policy public))
         (security-token (security-token *credentials*)))
-    (declare (ignore policy-header))
     (setf storage-class (or storage-class "STANDARD"))
     (submit-request (make-instance 'request
                                    :method :put
@@ -361,8 +360,9 @@ constraint."
                                    :key key
                                    :metadata metadata
                                    :amz-headers
-                                   (when security-token
-                                     (list (cons "security-token" security-token)))
+                                   (append policy-header
+                                           (when security-token
+                                             (list (cons "security-token" security-token))))
                                    :extra-http-headers
                                    (parameters-alist
                                     :cache-control cache-control

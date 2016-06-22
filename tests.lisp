@@ -39,20 +39,17 @@
          ";;; ")
 
 (defparameter *jenny* (octet-vector 8 6 7 5 3 0 9))
-(put-vector *jenny* *test-bucket* "jenny" :start 1 :end 6)
+(put-vector *jenny* *test-bucket* "jenny" :start 1 :end 6 :public t)
 
 (equalp (get-vector *test-bucket* "jenny")
         (subseq *jenny* 1 6))
 
+(drakma:http-request (resource-url :bucket *test-bucket* :key "jenny"))
 
 (delete-object *test-bucket* "hello")
 (delete-object *test-bucket* "self")
 (delete-object *test-bucket* "jenny")
 
-
-;;; Testing signing issues
-
-(put-string "Slashdot" *test-bucket* "slash/dot")
 (put-string "Tildedot" *test-bucket* "slash~dot")
 (put-string "Spacedot" *test-bucket* "slash dot")
 
