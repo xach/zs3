@@ -134,7 +134,8 @@ LispWorks external format EXTERNAL-FORMAT."
                           (and (not encode-slash) (char= char #\/))
                           (find char "-._~" :test #'char=))
                       (write-char char out))
-                     ((char= char #\Space)
+                     ((or (char= char #\Space)
+                          (char= char #\+))
                       (write-string "%20" out))
                      (t (format out "%~2,'0x" octet)))))))
 

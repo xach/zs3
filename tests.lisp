@@ -19,6 +19,7 @@
 
 (put-file "/etc/issue" *test-bucket* "printcap")
 (put-string "Hello, world" *test-bucket* "hello")
+(put-string "Plus good" *test-bucket* "plus+good")
 (put-vector (octet-vector 8 6 7 5 3 0 9) *test-bucket* "jenny")
 
 (all-buckets)
@@ -26,6 +27,7 @@
 
 (delete-object *test-bucket* "printcap")
 (delete-object *test-bucket* "hello")
+(delete-object *test-bucket* "plus+good")
 (delete-object *test-bucket* "jenny")
 
 (put-string "Hello, world" *test-bucket* "hello" :start 1 :end 5)
