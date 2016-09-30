@@ -57,12 +57,16 @@
   "Return three values: the HTTP status, an alist of Drakma-style HTTP
 headers, and the HTTP phrase, with the results of a HEAD request for
 the object specified by the optional BUCKET and KEY arguments."
-  (let ((response
-         (submit-request (make-instance 'request
-                                        :method :head
-                                        :bucket bucket
-                                        :key key
-                                        :parameters parameters))))
+    (let* ((security-token (security-token *credentials*))
+         (response
+          (submit-request (make-instance 'request
+                                         :method :head
+                                         :bucket bucket
+                                         :key key
+                                         :amz-headers
+                                         (when security-token
+                                           (list (cons "security-token" security-token)))
+                                         :parameters parameters))))
 
     (values (http-headers response)
             (http-code response)
