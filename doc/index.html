@@ -31,7 +31,7 @@ The latest version is 1.2.11, released on June 22nd, 2016.
    <li> <a href='#dictionary'>The ZS3 Dictionary</a>
      <ul>
        <li> <a href='#credentials'>Credentials</a>
-       <li> <a href='#backoff'>Backoff</a>
+       <li> <a href='#responses'>Responses</a>
        <li> <a href='#bucket-ops'>Operations on Buckets</a>
        <li> <a href='#querying-buckets'>Querying Buckets</a>
        <li> <a href='#object-ops'>Operations on Objects</a>
@@ -378,7 +378,13 @@ ZS3.
 
 
 
-<a name='backoff'><h3>Backoff</h3></a>
+<a name='responses'><h3>Responses</h3></a>
+
+<p>
+    Some operations return a response as an additional value. All
+    response objects can be interrogated to obtain the HTTP code,
+    headers and phrase.
+</p>
 
 <p>
     The response to some requests &mdash; a very small proportion
@@ -408,17 +414,94 @@ ZS3.
 
 	<p>
 	If a requst fails more times than permitted by
-	<code>*backoff*</code>, an error will be signalled:
-	</p>
+	<code>*backoff*</code>, an error will be signalled. It is the
+	application's responsibility to handle this error.</p>
 
-	<pre class="code">(ERROR #&lt;ZS3::INTERNAL-ERROR @ #x10008f1a8b2&gt;)</pre>
+<pre class="code">
+* e
+#&lt;ZS3::INTERNAL-ERROR @ #x1000296bc92&gt;
+* (setf r (zs3:request-error-response e))
+#&lt;ZS3::AMAZON-ERROR "InternalError"&gt;
+* (zs3:http-code r)
+500
+* (zs3:http-headers r)
+((:X-AMZ-REQUEST-ID . "3E20E3BAC24AB9AA")
+ (:X-AMZ-ID-2 . "80sxu4PDKtx1BWLOcSrUVWD90mMMVaMx6y9c+sz5VBGa2eAES2YlNaefn5kqRsfvrbaF+7QGNXA=")
+ (:CONTENT-TYPE . "application/xml")
+ (:TRANSFER-ENCODING . "chunked")
+ (:DATE . "Fri, 30 Sep 2016 10:10:11 GMT")
+ (:CONNECTION . "close")
+ (:SERVER . "AmazonS3"))
+* (zs3:http-phrase r)
+"Internal Server Error"
+*</pre>
 
-	<p>
-	    It is the application's responsibility to handle this.</p>
     </blockquote>
 </div>
 
 
+<div class='item'>
+    <div class='type'><a name='request-error-response'>[Function]</a></div>
+    <div class='signature'>
+	<code class='name'>request-error-response</code>
+	<span class='args'>
+	    <var>request-error</var>
+	</span>
+	<span class='result'>=> <var>response</var></span>
+    </div>
+    
+    <blockquote class='description'>
+	<p>Returns the <code>response</code> object associated with a request-error.
+    </blockquote>
+</div>
+
+
+<div class='item'>
+    <div class='type'><a name='http-code'>[Function]</a></div>
+    <div class='signature'>
+	<code class='name'>http-code</code>
+	<span class='args'>
+	    <var>response</var>
+	</span>
+	<span class='result'>=> <var>code</var></span>
+    </div>
+    
+    <blockquote class='description'>
+	<p>Returns the HTTP code associated with a <code>response</code> object.
+    </blockquote>
+</div>
+
+
+<div class='item'>
+    <div class='type'><a name='http-headers'>[Function]</a></div>
+    <div class='signature'>
+	<code class='name'>http-headers</code>
+	<span class='args'>
+	    <var>response</var>
+	</span>
+	<span class='result'>=> <var>headers</var></span>
+    </div>
+    
+    <blockquote class='description'>
+	<p>Returns the HTTP headers associated with a <code>response</code> object.
+    </blockquote>
+</div>
+
+
+<div class='item'>
+    <div class='type'><a name='http-phrase'>[Function]</a></div>
+    <div class='signature'>
+	<code class='name'>http-phrase</code>
+	<span class='args'>
+	    <var>response</var>
+	</span>
+	<span class='result'>=> <var>phrase</var></span>
+    </div>
+    
+    <blockquote class='description'>
+	<p>Returns the HTTP phrase associated with a <code>response</code> object.
+    </blockquote>
+</div>
 
 
 <a name='bucket-ops'><h3>Operations on Buckets</h3></a>
@@ -543,7 +626,7 @@ ZS3.
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -598,7 +681,7 @@ ZS3.
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -658,7 +741,7 @@ bucket with the given name.
     <span class='args'>
       <var>rules</var> <var>bucket</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>rules</var>, <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -737,7 +820,7 @@ bucket with the given name.
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1316,7 +1399,7 @@ bucket with the given name.
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1398,7 +1481,7 @@ bucket with the given name.
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1435,7 +1518,7 @@ bucket with the given name.
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1469,7 +1552,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1511,7 +1594,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1560,7 +1643,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1610,7 +1693,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1707,7 +1790,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1777,7 +1860,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1953,7 +2036,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1974,7 +2057,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -2007,7 +2090,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -2027,7 +2110,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -2051,7 +2134,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -2080,7 +2163,7 @@ calling:
       <var>credentials</var>
       <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>

@@ -221,12 +221,14 @@ configuration is deleted with DELETE-BUCKET-LIFECYCLE."
     (setf rules (list rules)))
   (let* ((content (lifecycle-document rules))
          (md5 (vector-md5/b64 content)))
-    (submit-request (make-instance 'request
-                                   :method :put
-                                   :bucket bucket
-                                   :sub-resource "lifecycle"
-                                   :content-md5 md5
-                                   :content content))))
+    (values
+     rules
+     (submit-request (make-instance 'request
+                                    :method :put
+                                    :bucket bucket
+                                    :sub-resource "lifecycle"
+                                    :content-md5 md5
+                                    :content content)))))
 
 ;;; Restoring from glacier
 

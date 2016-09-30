@@ -35,8 +35,12 @@
            #:access-key
            #:secret-key
            #:file-credentials)
-  ;; Backoff
-  (:export #:*backoff*)
+  ;; Responses
+  (:export #:*backoff*
+           #:request-error-response
+           #:http-code
+           #:http-headers
+           #:http-phrase)
   ;; Buckets
   (:export #:all-buckets
            #:creation-date
