@@ -31,6 +31,7 @@ The latest version is 1.2.11, released on June 22nd, 2016.
    <li> <a href='#dictionary'>The ZS3 Dictionary</a>
      <ul>
        <li> <a href='#credentials'>Credentials</a>
+       <li> <a href='#backoff'>Backoff</a>
        <li> <a href='#bucket-ops'>Operations on Buckets</a>
        <li> <a href='#querying-buckets'>Querying Buckets</a>
        <li> <a href='#object-ops'>Operations on Objects</a>
@@ -377,7 +378,50 @@ ZS3.
 
 
 
- <a name='bucket-ops'><h3>Operations on Buckets</h3></a>
+<a name='backoff'><h3>Backoff</h3></a>
+
+<p>
+    The response to some requests &mdash; a very small proportion
+    &mdash; will be an error internal to the AWS server. In these
+    circumstances an <cite>exponential backoff</cite>
+    policy is recommended.
+</p>
+
+<div class='item'>
+    <div class='type'><a name='*backoff*'>[Special variable]</a></div>
+    <div class='signature'>
+	<code class='name'>*backoff*</code>
+    </div>
+    
+    <blockquote class='description'>
+	<p>
+	Used as the default value of <code>:backoff</code> when
+	submitting a request. The value should be a cons of two
+	numbers: how many times to try before giving up, and how long
+	to wait (in ms) before trying for the second time. Each
+	subsequent attempt will double that time. 
+	</p>
+
+	<p>
+	The default value is <code>(3 . 100)</code>.
+	</p>
+
+	<p>
+	If a requst fails more times than permitted by
+	<code>*backoff*</code>, an error will be signalled:
+	</p>
+
+	<pre class="code">(ERROR #&lt;ZS3::INTERNAL-ERROR @ #x10008f1a8b2&gt;)</pre>
+
+	<p>
+	    It is the application's responsibility to handle this.</p>
+    </blockquote>
+</div>
+
+
+
+
+<a name='bucket-ops'><h3>Operations on Buckets</h3></a>
 
  <p>With ZS3, you can put, get, copy, and delete buckets. You can also
  get information about the bucket.
@@ -387,7 +431,7 @@ ZS3.
   <div class='signature'>
     <code class='name'>all-buckets</code>
     <span class='args'>
-      <code class='llkw'>&amp;key</code> <var>credentials</var>
+      <code class='llkw'>&amp;key</code> <var>credentials</var> <var>backoff</var>
     </span>
     <span class='result'>=> <var>bucket-vector</var></span>
   </div>
@@ -442,6 +486,7 @@ ZS3.
       <code class='llkw'>&amp;key</code>
       <var>prefix</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>key-vector</var></span>
   </div>
@@ -474,6 +519,7 @@ ZS3.
       <var>bucket</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>boolean</var></span>
   </div>
@@ -495,6 +541,7 @@ ZS3.
       <var>public</var>
       <var>location</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -547,7 +594,9 @@ ZS3.
   <div class='signature'>
     <code class='name'>delete-bucket</code>
     <span class='args'>
-      <var>bucket</var> <code class='llkw'>&amp;key</code> <var>credentials</var>
+      <var>bucket</var> <code class='llkw'>&amp;key</code> 
+      <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -566,7 +615,9 @@ bucket with the given name.
   <div class='signature'>
     <code class='name'>bucket-location</code>
     <span class='args'>
-      <var>bucket</var> <code class='llkw'>&amp;key</code> <var>credentials</var>
+      <var>bucket</var> <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>location</var></span>
   </div>
@@ -684,6 +735,7 @@ bucket with the given name.
       <code class='llkw'>&amp;body</code>
       <var>days</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -719,6 +771,7 @@ bucket with the given name.
       <var>key</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>status-string</var></span>
   </div>
@@ -753,6 +806,7 @@ bucket with the given name.
       <var>max-keys</var>
       <var>delimiter</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>response</var></span>
   </div>
@@ -1094,6 +1148,7 @@ bucket with the given name.
       <var>when-etag-matches</var> <var>unless-etag-matches</var> <br>
       <var>if-exists</var> <var>string-external-format</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>object</var></span>
   </div>
@@ -1164,6 +1219,7 @@ bucket with the given name.
       <var>when-modified-since</var> <var>unless-modified-since</var>
       <var>when-etag-matches</var> <var>unless-etag-matches</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>vector</var></span>
   </div>
@@ -1192,6 +1248,7 @@ bucket with the given name.
       <var>when-etag-matches</var>
       <var>unless-etag-matches</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>string</var></span>
   </div>
@@ -1221,6 +1278,7 @@ bucket with the given name.
       <var>when-etag-matches</var>
       <var>unless-etag-matches</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>pathname</var></span>
   </div>
@@ -1256,6 +1314,7 @@ bucket with the given name.
       <var>expires</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1337,6 +1396,7 @@ bucket with the given name.
       <var>expires</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1373,6 +1433,7 @@ bucket with the given name.
       <var>expires</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1406,6 +1467,7 @@ calling:
       <var>expires</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1447,6 +1509,7 @@ calling:
       <var>expires</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1495,6 +1558,7 @@ calling:
       <var>metadata</var> <var>public</var> <var>precondition-errors</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1544,6 +1608,7 @@ calling:
       <var>key</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1567,6 +1632,7 @@ calling:
       <var>keys</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>deleted-count</var>, <var>errors</var></span>
   </div>
@@ -1588,6 +1654,7 @@ calling:
       <var>bucket</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>count</var></span>
   </div>
@@ -1608,6 +1675,7 @@ calling:
       <var>key</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>metadata-alist</var></span>
   </div>
@@ -1637,6 +1705,7 @@ calling:
       <var>storage-class</var> 
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1684,6 +1753,7 @@ calling:
       <var>bucket</var>
       <var>key</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>owner</var>, <var>grants</var></span>
   </div>
@@ -1705,6 +1775,7 @@ calling:
       <var>bucket</var>
       <var>key</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1856,6 +1927,7 @@ calling:
     <span class='args'>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>acl-person</var></span>
   </div>
@@ -1879,6 +1951,7 @@ calling:
       <var>bucket</var>
       <var>key</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1899,6 +1972,7 @@ calling:
       <var>bucket</var>
       <var>key</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1931,6 +2005,7 @@ calling:
       <var>bucket</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1950,6 +2025,7 @@ calling:
       <var>bucket</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1973,6 +2049,7 @@ calling:
       <code class='llkw'>&amp;key</code>
       <var>target-grants</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -1999,7 +2076,9 @@ calling:
   <div class='signature'>
     <code class='name'>disable-logging</code>
     <span class='args'>
-      <var>bucket</var> <code class='llkw'>&amp;key</code> <var>credentials</var>
+      <var>bucket</var> <code class='llkw'>&amp;key</code> 
+      <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> |</span>
   </div>
@@ -2018,6 +2097,7 @@ calling:
       <var>bucket</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>target-bucket</var>,
       <var>target-prefix</var>,
@@ -2150,6 +2230,7 @@ calling:
       <var>key</var>
       <var>parameters</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>headers-alist</var>,
       <var>status-code</var>,

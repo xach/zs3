@@ -85,6 +85,9 @@
     (cond ((or (null (body response))
                (and (not (streamp (body response)))
                     (zerop (length (body response)))))
+           (when (<= 500 (http-code response) 599)
+              (change-class response 'amazon-error)
+              (specialized-initialize response nil))
            response)
           (t
            (let* ((source (xml-source (body response)))
@@ -133,6 +136,12 @@
             (setq *keep-alive-stream* nil)
             (funcall handler response))))))
 
+(defvar *backoff* (cons 3 100)
+  "Used as the default value of :BACKOFF when submitting a request.
+   The value should be a cons of two numbers: how many times to try
+   before giving up, and how long to wait (in ms) before trying for
+   the second time. Each subsequent attempt will double that time.")
+
 (defun submit-request (request
                        &key body-stream
                          (keep-stream *use-keep-alive*)
@@ -140,7 +149,10 @@
   ;; The original endpoint has to be stashed so it can be updated as
   ;; needed by AuthorizationHeaderMalformed responses after being
   ;; clobbered in the request by TemporaryRedirect responses.
-  (let ((original-endpoint (endpoint request)))
+  (let* ((original-endpoint (endpoint request))
+         (backoff *backoff*)
+         (tries (car backoff))
+         (delay (/ (cdr backoff) 1000)))
     (loop
       (handler-case
           (let ((response (request-response request
@@ -170,9 +182,15 @@
             (setf (endpoint request) new-endpoint)
             (when new-region
               (setf (region request) new-region))))
-        (internal-error ()
-          ;; Per the S3 docs, InternalErrors should simply be retried
-          (close-keep-alive))
+        (internal-error (e)
+          ;; Per the S3 docs, InternalErrors should be retried. Up to
+          ;; a point.
+          (close-keep-alive)
+          (when (minusp (decf tries))
+            ;; We've exceeded our failure allowance. Resignal.
+            (error e))
+          (sleep delay)
+          (incf delay delay))
         (error (e)
           ;; Ensure that we don't reuse the stream, it may be the source of
           ;; our error.  Then resignal.

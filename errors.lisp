@@ -58,6 +58,11 @@
     (setf (message response) (bvalue :message bindings))
     (setf (error-data response) (bvalue :data bindings))))
 
+(defmethod specialized-initialize ((response amazon-error) (source null))
+  (setf (code response) "InternalError"
+        (message response) nil
+        (error-data response) nil))
+
 (defmethod print-object ((response amazon-error) stream)
   (print-unreadable-object (response stream :type t)
     (prin1 (code response) stream)))
@@ -65,7 +70,7 @@
 ;;; Further specializing error messages/conditions
 
 (defun report-request-error (condition stream)
-  (format stream "~A: ~A"
+  (format stream "~A~@[: ~A~]"
           (code (request-error-response condition))
           (message (request-error-response condition))))
 
@@ -134,7 +139,7 @@
                 :response response
                 :data (error-data response)
                 ,@(mapcan #'slot-initializer slots))))))
-              
+
 
 ;;; The specific errors
 
@@ -186,7 +191,7 @@
              (report-request-error condition stream)
              (format stream "~&For more information, see:~%  ~A"
                             (linked-url condition)))))
-   
+
 
 (define-condition bucket-restrictions (linked)
   ()

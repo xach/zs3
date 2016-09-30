@@ -35,6 +35,8 @@
            #:access-key
            #:secret-key
            #:file-credentials)
+  ;; Backoff
+  (:export #:*backoff*)
   ;; Buckets
   (:export #:all-buckets
            #:creation-date

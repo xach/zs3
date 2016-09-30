@@ -184,7 +184,8 @@ by xml-binding the LIFECYCLE-CONFIGURATION binder with a document."
     () ())
 
 (defun bucket-lifecycle (bucket
-                         &key ((:credentials *credentials*) *credentials*))
+                         &key ((:credentials *credentials*) *credentials*)
+                           ((:backoff *backoff*) *backoff*))
   "Return the bucket lifecycle rules for BUCKET. Signals
 NO-SUCH-LIFECYCLE-CONFIGURATION if the bucket has no lifecycle
 configuration."
@@ -198,7 +199,8 @@ configuration."
 
 (defun delete-bucket-lifecycle (bucket
                                 &key
-                                ((:credentials *credentials*) *credentials*))
+                                  ((:credentials *credentials*) *credentials*)
+                                  ((:backoff *backoff*) *backoff*))
   "Delete the lifecycle configuration of BUCKET."
   (submit-request (make-instance 'request
                                  :method :delete
@@ -207,7 +209,8 @@ configuration."
 
 (defun (setf bucket-lifecycle) (rules bucket
                                 &key
-                                ((:credentials *credentials*) *credentials*))
+                                  ((:credentials *credentials*) *credentials*)
+                                  ((:backoff *backoff*) *backoff*))
   "Set the lifecycle configuration of BUCKET to RULES. RULES is
 coerced to a list if needed. If RULES is NIL, the lifecycle
 configuration is deleted with DELETE-BUCKET-LIFECYCLE."
@@ -233,9 +236,11 @@ configuration is deleted with DELETE-BUCKET-LIFECYCLE."
       (with-element "Days"
         (text (princ-to-string days))))))
 
-(defun restore-object (bucket key &key
-                       days
-                       ((:credentials *credentials*) *credentials*))
+(defun restore-object (bucket key
+                       &key
+                         days
+                         ((:credentials *credentials*) *credentials*)
+                         ((:backoff *backoff*) *backoff*))
   (let* ((content (restore-request-document days))
          (md5 (vector-md5/b64 content)))
     (submit-request (make-instance 'request
@@ -246,8 +251,10 @@ configuration is deleted with DELETE-BUCKET-LIFECYCLE."
                                    :key key
                                    :content content))))
 
-(defun object-restoration-status (bucket key &key
-                                  ((:credentials *credentials*) *credentials*))
+(defun object-restoration-status (bucket key
+                                  &key
+                                    ((:credentials *credentials*) *credentials*)
+                                    ((:backoff *backoff*) *backoff*))
   (let ((headers (head :bucket bucket :key key)))
     (cdr (assoc :x-amz-restore headers))))
 
