@@ -165,13 +165,13 @@
 
 (defmethod slot-unbound ((class t) (request request) (slot (eql 'content-md5)))
   (setf (content-md5 request)
-        (and *use-content-md5*
-             (let ((content (content request)))
-               (cond ((pathnamep content) (file-md5/b64 content))
-                     ((vectorp content) (vector-md5/b64 content))
-                     ((stringp content)
-                      (vector-md5/b64
-                       (flexi-streams:string-to-octets content))))))))
+        (when *use-content-md5*
+          (let ((content (content request)))
+            (cond ((pathnamep content) (file-md5/b64 content))
+                  ((stringp content)
+                   (vector-md5/b64
+                    (flexi-streams:string-to-octets content)))
+                  ((vectorp content) (vector-md5/b64 content)))))))
 
 (defmethod slot-unbound ((class t) (request request) (slot (eql 'signed-string)))
   (setf (signed-string request)
