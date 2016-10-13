@@ -141,7 +141,8 @@
            #:request-time-skewed
            #:operation-aborted
            #:no-such-lifecycle-configuration
-           #:restore-already-in-progress)
+           #:restore-already-in-progress
+           #:internal-error)
   ;; Cloudfront distribution management
   (:export #:status
            #:origin-bucket

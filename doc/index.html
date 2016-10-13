@@ -390,11 +390,33 @@ ZS3.
 </p>
 
 <p>
-    The response to some requests &mdash; a very small proportion
-    &mdash; will be an error internal to the AWS server. In these
-    circumstances an <cite>exponential backoff</cite>
-    policy is recommended.
+    The outcome of some requests &mdash; a very small proportion
+    &mdash; will be an error <cite>internal</cite> to the AWS server. In these
+    circumstances an exponential backoff policy operates; if this
+    encounters too many failures then ZS3 signals an <tt>internal-error</tt>
+    which can be interrogated to obtain the response object, and
+    through that the HTTP response code and headers:
 </p>
+
+
+<pre class="code">
+* <b>e</b>
+#&lt;ZS3:INTERNAL-ERROR @ #x1000296bc92&gt;
+* <b>(setf r (zs3:request-error-response e))</b>
+#&lt;ZS3::AMAZON-ERROR "InternalError"&gt;
+* <b>(zs3:http-code r)</b>
+500
+* <b>(zs3:http-headers r)</b>
+((:X-AMZ-REQUEST-ID . "3E20E3BAC24AB9AA")
+ (:X-AMZ-ID-2 . "80sxu4PDKtx1BWLOcSrUVWD90mMMVaMx6y9c+sz5VBGa2eAES2YlNaefn5kqRsfvrbaF+7QGNXA=")
+ (:CONTENT-TYPE . "application/xml")
+ (:TRANSFER-ENCODING . "chunked")
+ (:DATE . "Fri, 30 Sep 2016 10:10:11 GMT")
+ (:CONNECTION . "close")
+ (:SERVER . "AmazonS3"))
+* <b>(zs3:http-phrase r)</b>
+"Internal Server Error"
+*</pre>
 
 <div class='item'>
     <div class='type'><a name='*backoff*'>[Special variable]</a></div>
@@ -419,26 +441,6 @@ ZS3.
 	If a requst fails more times than permitted by
 	<code>*backoff*</code>, an error will be signalled. It is the
 	application's responsibility to handle this error.</p>
-
-<pre class="code">
-* e
-#&lt;ZS3::INTERNAL-ERROR @ #x1000296bc92&gt;
-* (setf r (zs3:request-error-response e))
-#&lt;ZS3::AMAZON-ERROR "InternalError"&gt;
-* (zs3:http-code r)
-500
-* (zs3:http-headers r)
-((:X-AMZ-REQUEST-ID . "3E20E3BAC24AB9AA")
- (:X-AMZ-ID-2 . "80sxu4PDKtx1BWLOcSrUVWD90mMMVaMx6y9c+sz5VBGa2eAES2YlNaefn5kqRsfvrbaF+7QGNXA=")
- (:CONTENT-TYPE . "application/xml")
- (:TRANSFER-ENCODING . "chunked")
- (:DATE . "Fri, 30 Sep 2016 10:10:11 GMT")
- (:CONNECTION . "close")
- (:SERVER . "AmazonS3"))
-* (zs3:http-phrase r)
-"Internal Server Error"
-*</pre>
-
     </blockquote>
 </div>
 
