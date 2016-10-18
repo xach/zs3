@@ -31,6 +31,7 @@ The latest version is 1.2.11, released on June 22nd, 2016.
    <li> <a href='#dictionary'>The ZS3 Dictionary</a>
      <ul>
        <li> <a href='#credentials'>Credentials</a>
+       <li> <a href='#responses'>Responses</a>
        <li> <a href='#bucket-ops'>Operations on Buckets</a>
        <li> <a href='#querying-buckets'>Querying Buckets</a>
        <li> <a href='#object-ops'>Operations on Objects</a>
@@ -131,6 +132,9 @@ The latest version is 1.2.11, released on June 22nd, 2016.
 
   * <b>(<a href='#create-bucket'>create-bucket</a> "zs3-demo")</b>
   => #&lt;RESPONSE 200 "OK" {10040D3281}>
+
+  * <b>(<a href='#http-code''>http-code</a> *)</b>
+  => 200
 
   * <b>(<a href='#put-vector'>put-vector</a> (<a href='#octet-vector'>octet-vector</a> 8 6 7 5 3 0 9 ) "zs3-demo" "jenny")</b>
   => #&lt;RESPONSE 200 "OK" {10033EC2E1}>
@@ -377,7 +381,135 @@ ZS3.
 
 
 
- <a name='bucket-ops'><h3>Operations on Buckets</h3></a>
+<a name='responses'><h3>Responses</h3></a>
+
+<p>
+    Some operations return a response as an additional value. All
+    response objects can be interrogated to obtain the HTTP code,
+    headers and phrase.
+</p>
+
+<p>
+    The outcome of some requests &mdash; a very small proportion
+    &mdash; will be an error <cite>internal</cite> to the AWS server. In these
+    circumstances an exponential backoff policy operates; if this
+    encounters too many failures then ZS3 signals an <tt>internal-error</tt>
+    which can be interrogated to obtain the response object, and
+    through that the HTTP response code and headers:
+</p>
+
+
+<pre class="code">
+* <b>e</b>
+#&lt;ZS3:INTERNAL-ERROR @ #x1000296bc92&gt;
+* <b>(setf r (zs3:request-error-response e))</b>
+#&lt;ZS3::AMAZON-ERROR "InternalError"&gt;
+* <b>(zs3:http-code r)</b>
+500
+* <b>(zs3:http-headers r)</b>
+((:X-AMZ-REQUEST-ID . "3E20E3BAC24AB9AA")
+ (:X-AMZ-ID-2 . "80sxu4PDKtx1BWLOcSrUVWD90mMMVaMx6y9c+sz5VBGa2eAES2YlNaefn5kqRsfvrbaF+7QGNXA=")
+ (:CONTENT-TYPE . "application/xml")
+ (:TRANSFER-ENCODING . "chunked")
+ (:DATE . "Fri, 30 Sep 2016 10:10:11 GMT")
+ (:CONNECTION . "close")
+ (:SERVER . "AmazonS3"))
+* <b>(zs3:http-phrase r)</b>
+"Internal Server Error"
+*</pre>
+
+<div class='item'>
+    <div class='type'><a name='*backoff*'>[Special variable]</a></div>
+    <div class='signature'>
+	<code class='name'>*backoff*</code>
+    </div>
+    
+    <blockquote class='description'>
+	<p>
+	Used as the default value of <code>:backoff</code> when
+	submitting a request. The value should be a cons of two
+	numbers: how many times to try before giving up, and how long
+	to wait (in ms) before trying for the second time. Each
+	subsequent attempt will double that time. 
+	</p>
+
+	<p>
+	The default value is <code>(3 . 100)</code>.
+	</p>
+
+	<p>
+	If a requst fails more times than permitted by
+	<code>*backoff*</code>, an error will be signalled. It is the
+	application's responsibility to handle this error.</p>
+    </blockquote>
+</div>
+
+
+<div class='item'>
+    <div class='type'><a name='request-error-response'>[Function]</a></div>
+    <div class='signature'>
+	<code class='name'>request-error-response</code>
+	<span class='args'>
+	    <var>request-error</var>
+	</span>
+	<span class='result'>=> <var>response</var></span>
+    </div>
+    
+    <blockquote class='description'>
+	<p>Returns the <code>response</code> object associated with a request-error.
+    </blockquote>
+</div>
+
+
+<div class='item'>
+    <div class='type'><a name='http-code'>[Function]</a></div>
+    <div class='signature'>
+	<code class='name'>http-code</code>
+	<span class='args'>
+	    <var>response</var>
+	</span>
+	<span class='result'>=> <var>code</var></span>
+    </div>
+    
+    <blockquote class='description'>
+	<p>Returns the HTTP code associated with a <code>response</code> object.
+    </blockquote>
+</div>
+
+
+<div class='item'>
+    <div class='type'><a name='http-headers'>[Function]</a></div>
+    <div class='signature'>
+	<code class='name'>http-headers</code>
+	<span class='args'>
+	    <var>response</var>
+	</span>
+	<span class='result'>=> <var>headers</var></span>
+    </div>
+    
+    <blockquote class='description'>
+	<p>Returns the HTTP headers associated with a <code>response</code> object.
+    </blockquote>
+</div>
+
+
+<div class='item'>
+    <div class='type'><a name='http-phrase'>[Function]</a></div>
+    <div class='signature'>
+	<code class='name'>http-phrase</code>
+	<span class='args'>
+	    <var>response</var>
+	</span>
+	<span class='result'>=> <var>phrase</var></span>
+    </div>
+    
+    <blockquote class='description'>
+	<p>Returns the HTTP phrase associated with a <code>response</code> object.
+    </blockquote>
+</div>
+
+
+<a name='bucket-ops'><h3>Operations on Buckets</h3></a>
 
  <p>With ZS3, you can put, get, copy, and delete buckets. You can also
  get information about the bucket.
@@ -387,7 +519,7 @@ ZS3.
   <div class='signature'>
     <code class='name'>all-buckets</code>
     <span class='args'>
-      <code class='llkw'>&amp;key</code> <var>credentials</var>
+      <code class='llkw'>&amp;key</code> <var>credentials</var> <var>backoff</var>
     </span>
     <span class='result'>=> <var>bucket-vector</var></span>
   </div>
@@ -442,6 +574,7 @@ ZS3.
       <code class='llkw'>&amp;key</code>
       <var>prefix</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>key-vector</var></span>
   </div>
@@ -474,6 +607,7 @@ ZS3.
       <var>bucket</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>boolean</var></span>
   </div>
@@ -495,8 +629,9 @@ ZS3.
       <var>public</var>
       <var>location</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -547,9 +682,11 @@ ZS3.
   <div class='signature'>
     <code class='name'>delete-bucket</code>
     <span class='args'>
-      <var>bucket</var> <code class='llkw'>&amp;key</code> <var>credentials</var>
+      <var>bucket</var> <code class='llkw'>&amp;key</code> 
+      <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -566,7 +703,9 @@ bucket with the given name.
   <div class='signature'>
     <code class='name'>bucket-location</code>
     <span class='args'>
-      <var>bucket</var> <code class='llkw'>&amp;key</code> <var>credentials</var>
+      <var>bucket</var> <code class='llkw'>&amp;key</code>
+      <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>location</var></span>
   </div>
@@ -607,7 +746,7 @@ bucket with the given name.
     <span class='args'>
       <var>rules</var> <var>bucket</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>rules</var>, <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -684,8 +823,9 @@ bucket with the given name.
       <code class='llkw'>&amp;body</code>
       <var>days</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -719,6 +859,7 @@ bucket with the given name.
       <var>key</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>status-string</var></span>
   </div>
@@ -753,6 +894,7 @@ bucket with the given name.
       <var>max-keys</var>
       <var>delimiter</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>response</var></span>
   </div>
@@ -1094,6 +1236,7 @@ bucket with the given name.
       <var>when-etag-matches</var> <var>unless-etag-matches</var> <br>
       <var>if-exists</var> <var>string-external-format</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>object</var></span>
   </div>
@@ -1164,6 +1307,7 @@ bucket with the given name.
       <var>when-modified-since</var> <var>unless-modified-since</var>
       <var>when-etag-matches</var> <var>unless-etag-matches</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>vector</var></span>
   </div>
@@ -1192,6 +1336,7 @@ bucket with the given name.
       <var>when-etag-matches</var>
       <var>unless-etag-matches</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>string</var></span>
   </div>
@@ -1221,6 +1366,7 @@ bucket with the given name.
       <var>when-etag-matches</var>
       <var>unless-etag-matches</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>pathname</var></span>
   </div>
@@ -1256,8 +1402,9 @@ bucket with the given name.
       <var>expires</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1337,8 +1484,9 @@ bucket with the given name.
       <var>expires</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1373,8 +1521,9 @@ bucket with the given name.
       <var>expires</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1406,8 +1555,9 @@ calling:
       <var>expires</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1447,8 +1597,9 @@ calling:
       <var>expires</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1495,8 +1646,9 @@ calling:
       <var>metadata</var> <var>public</var> <var>precondition-errors</var>
       <var>storage-class</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1544,8 +1696,9 @@ calling:
       <var>key</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1567,6 +1720,7 @@ calling:
       <var>keys</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>deleted-count</var>, <var>errors</var></span>
   </div>
@@ -1588,6 +1742,7 @@ calling:
       <var>bucket</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>count</var></span>
   </div>
@@ -1608,6 +1763,7 @@ calling:
       <var>key</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>metadata-alist</var></span>
   </div>
@@ -1637,8 +1793,9 @@ calling:
       <var>storage-class</var> 
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1684,6 +1841,7 @@ calling:
       <var>bucket</var>
       <var>key</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>owner</var>, <var>grants</var></span>
   </div>
@@ -1705,8 +1863,9 @@ calling:
       <var>bucket</var>
       <var>key</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1856,6 +2015,7 @@ calling:
     <span class='args'>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>acl-person</var></span>
   </div>
@@ -1879,8 +2039,9 @@ calling:
       <var>bucket</var>
       <var>key</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1899,8 +2060,9 @@ calling:
       <var>bucket</var>
       <var>key</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1931,8 +2093,9 @@ calling:
       <var>bucket</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1950,8 +2113,9 @@ calling:
       <var>bucket</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1973,8 +2137,9 @@ calling:
       <code class='llkw'>&amp;key</code>
       <var>target-grants</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -1999,9 +2164,11 @@ calling:
   <div class='signature'>
     <code class='name'>disable-logging</code>
     <span class='args'>
-      <var>bucket</var> <code class='llkw'>&amp;key</code> <var>credentials</var>
+      <var>bucket</var> <code class='llkw'>&amp;key</code> 
+      <var>credentials</var>
+      <var>backoff</var>
     </span>
-    <span class='result'>=> |</span>
+    <span class='result'>=> <var>response</var></span>
   </div>
 
   <blockquote class='description'>
@@ -2018,6 +2185,7 @@ calling:
       <var>bucket</var>
       <code class='llkw'>&amp;key</code>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>target-bucket</var>,
       <var>target-prefix</var>,
@@ -2150,6 +2318,7 @@ calling:
       <var>key</var>
       <var>parameters</var>
       <var>credentials</var>
+      <var>backoff</var>
     </span>
     <span class='result'>=> <var>headers-alist</var>,
       <var>status-code</var>,

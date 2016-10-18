@@ -35,6 +35,12 @@
            #:access-key
            #:secret-key
            #:file-credentials)
+  ;; Responses
+  (:export #:*backoff*
+           #:request-error-response
+           #:http-code
+           #:http-headers
+           #:http-phrase)
   ;; Buckets
   (:export #:all-buckets
            #:creation-date
@@ -135,7 +141,8 @@
            #:request-time-skewed
            #:operation-aborted
            #:no-such-lifecycle-configuration
-           #:restore-already-in-progress)
+           #:restore-already-in-progress
+           #:internal-error)
   ;; Cloudfront distribution management
   (:export #:status
            #:origin-bucket

@@ -53,16 +53,21 @@
          (canned-access-policy access-policy))))
 
 (defun head (&key bucket key parameters
-             ((:credentials *credentials*) *credentials*))
+               ((:credentials *credentials*) *credentials*)
+               ((:backoff *backoff*) *backoff*))
   "Return three values: the HTTP status, an alist of Drakma-style HTTP
 headers, and the HTTP phrase, with the results of a HEAD request for
 the object specified by the optional BUCKET and KEY arguments."
-  (let ((response
-         (submit-request (make-instance 'request
-                                        :method :head
-                                        :bucket bucket
-                                        :key key
-                                        :parameters parameters))))
+  (let* ((security-token (security-token *credentials*))
+         (response
+          (submit-request (make-instance 'request
+                                         :method :head
+                                         :bucket bucket
+                                         :key key
+                                         :amz-headers
+                                         (when security-token
+                                           (list (cons "security-token" security-token)))
+                                         :parameters parameters))))
 
     (values (http-headers response)
             (http-code response)
@@ -70,14 +75,16 @@ the object specified by the optional BUCKET and KEY arguments."
 
 ;;; Operations on buckets
 
-(defun all-buckets (&key ((:credentials *credentials*) *credentials*))
+(defun all-buckets (&key ((:credentials *credentials*) *credentials*)
+                      ((:backoff *backoff*) *backoff*))
   "Return a vector of all BUCKET objects associated with *CREDENTIALS*."
   (let ((response (submit-request (make-instance 'request
                                                  :method :get))))
     (buckets response)))
 
 (defun bucket-location (bucket &key
-                        ((:credentials *credentials*) *credentials*))
+                                 ((:credentials *credentials*) *credentials*)
+                                 ((:backoff *backoff*) *backoff*))
   "If BUCKET was created with a LocationConstraint, return its
 constraint."
   (let* ((request (make-instance 'request
@@ -90,7 +97,8 @@ constraint."
       location)))
 
 (defun bucket-region (bucket
-                      &key ((:credentials *credentials*) *credentials*))
+                      &key ((:credentials *credentials*) *credentials*)
+                        ((:backoff *backoff*) *backoff*))
   (or (bucket-location bucket)
       "us-east-1"))
 
@@ -100,7 +108,8 @@ constraint."
       (format nil "s3-~A.amazonaws.com" region)))
 
 (defun query-bucket (bucket &key prefix marker max-keys delimiter
-                     ((:credentials *credentials*) *credentials*))
+                              ((:credentials *credentials*) *credentials*)
+                              ((:backoff *backoff*) *backoff*))
   (submit-request (make-instance 'request
                                  :method :get
                                  :bucket bucket
@@ -118,7 +127,8 @@ constraint."
         (submit-request request)))))
 
 (defun all-keys (bucket &key prefix
-                 ((:credentials *credentials*) *credentials*))
+                          ((:credentials *credentials*) *credentials*)
+                          ((:backoff *backoff*) *backoff*))
   "Reutrn a vector of all KEY objects in BUCKET."
   (let ((response (query-bucket bucket :prefix prefix))
         (results '()))
@@ -134,7 +144,8 @@ constraint."
         (incf start (length keys))))))
 
 (defun bucket-exists-p (bucket &key
-                        ((:credentials *credentials*) *credentials*))
+                                 ((:credentials *credentials*) *credentials*)
+                                 ((:backoff *backoff*) *backoff*))
   (let ((code (nth-value 1 (head :bucket bucket
                                  :parameters
                                  (parameters-alist :max-keys 0)))))
@@ -144,7 +155,8 @@ constraint."
                       access-policy
                       public
                       location
-                      ((:credentials *credentials*) *credentials*))
+                             ((:credentials *credentials*) *credentials*)
+                             ((:backoff *backoff*) *backoff*))
   (let ((policy-header (access-policy-header access-policy public)))
     (submit-request (make-instance 'request
                                    :method :put
@@ -155,7 +167,8 @@ constraint."
                                    :amz-headers policy-header))))
 
 (defun delete-bucket (bucket &key
-                      ((:credentials *credentials*) *credentials*))
+                               ((:credentials *credentials*) *credentials*)
+                               ((:backoff *backoff*) *backoff*))
   (let* ((request (make-instance 'request
                                  :method :delete
                                  :bucket bucket))
@@ -219,7 +232,8 @@ constraint."
                                 (output :vector)
                                 (if-exists :supersede)
                                 (string-external-format :utf-8)
-                                ((:credentials *credentials*) *credentials*))
+                                ((:credentials *credentials*) *credentials*)
+                                ((:backoff *backoff*) *backoff*))
   (flet ((range-argument (start end)
            (when start
              (format nil "bytes=~D-~@[~D~]" start (and end (1- end)))))
@@ -282,7 +296,8 @@ constraint."
                    when-modified-since unless-modified-since
                    when-etag-matches unless-etag-matches
                    (if-exists :supersede)
-                   ((:credentials *credentials*) *credentials*))
+                     ((:credentials *credentials*) *credentials*)
+                     ((:backoff *backoff*) *backoff*))
   (get-object bucket key
               :output :vector
               :start start
@@ -299,7 +314,8 @@ constraint."
                    when-modified-since unless-modified-since
                    when-etag-matches unless-etag-matches
                    (if-exists :supersede)
-                   ((:credentials *credentials*) *credentials*))
+                     ((:credentials *credentials*) *credentials*)
+                     ((:backoff *backoff*) *backoff*))
   (get-object bucket key
               :output :string
               :string-external-format external-format
@@ -316,7 +332,8 @@ constraint."
                  when-modified-since unless-modified-since
                  when-etag-matches unless-etag-matches
                  (if-exists :supersede)
-                 ((:credentials *credentials*) *credentials*))
+                   ((:credentials *credentials*) *credentials*)
+                   ((:backoff *backoff*) *backoff*))
   (get-object bucket key
               :output (pathname file)
               :start start
@@ -342,7 +359,8 @@ constraint."
                                        expires
                                        content-type
                                        (storage-class "STANDARD")
-                                       ((:credentials *credentials*) *credentials*))
+                                       ((:credentials *credentials*) *credentials*)
+                                       ((:backoff *backoff*) *backoff*))
   (let ((content
          (etypecase object
            (string
@@ -386,7 +404,8 @@ constraint."
                    (content-type "binary/octet-stream")
                    expires
                    storage-class
-                   ((:credentials *credentials*) *credentials*))
+                   ((:credentials *credentials*) *credentials*)
+                   ((:backoff *backoff*) *backoff*))
   (when (or start end)
     (setf vector (subseq vector (or start 0) end)))
   (put-object vector bucket key
@@ -412,7 +431,8 @@ constraint."
                    (content-type "text/plain")
                    expires
                    storage-class
-                   ((:credentials *credentials*) *credentials*))
+                   ((:credentials *credentials*) *credentials*)
+                   ((:backoff *backoff*) *backoff*))
   (when (or start end)
     (setf string (subseq string (or start 0) end)))
   (put-object string bucket key
@@ -439,7 +459,8 @@ constraint."
                  (content-type "binary/octet-stream")
                  expires
                  storage-class
-                 ((:credentials *credentials*) *credentials*))
+                 ((:credentials *credentials*) *credentials*)
+                 ((:backoff *backoff*) *backoff*))
   (when (eq key t)
     (setf key (file-namestring file)))
   (let ((content (pathname file)))
@@ -468,7 +489,8 @@ constraint."
                    (content-type "binary/octet-stream")
                    expires
                    storage-class
-                   ((:credentials *credentials*) *credentials*))
+                   ((:credentials *credentials*) *credentials*)
+                   ((:backoff *backoff*) *backoff*))
   (let ((content (stream-subset-vector stream start end)))
     (put-object content bucket key
                 :access-policy access-policy
@@ -485,7 +507,8 @@ constraint."
 ;;; Delete & copy objects
 
 (defun delete-object (bucket key &key
-                        ((:credentials *credentials*) *credentials*))
+                                   ((:credentials *credentials*) *credentials*)
+                                   ((:backoff *backoff*) *backoff*))
   "Delete one object from BUCKET identified by KEY."
   (let ((security-token (security-token *credentials*)))
     (submit-request (make-instance 'request
@@ -519,8 +542,10 @@ constraint."
                ("Code" (bind :error-code))
                ("Message" (bind :error-message)))))))
 
-(defun delete-objects (bucket keys &key
-                       ((:credentials *credentials*) *credentials*))
+(defun delete-objects (bucket keys
+                       &key
+                         ((:credentials *credentials*) *credentials*)
+                         ((:backoff *backoff*) *backoff*))
   "Delete the objects in BUCKET identified by the sequence KEYS."
   (let ((deleted 0)
         (failed '())
@@ -556,7 +581,8 @@ constraint."
       (values deleted failed))))
 
 (defun delete-all-objects (bucket &key
-                           ((:credentials *credentials*) *credentials*))
+                                    ((:credentials *credentials*) *credentials*)
+                                    ((:backoff *backoff*) *backoff*))
   "Delete all objects in BUCKET."
   ;; FIXME: This should probably bucket-query and incrementally delete
   ;; instead of fetching all keys upfront.
@@ -574,7 +600,8 @@ constraint."
                     public
                     precondition-errors
                     (storage-class "STANDARD")
-                    ((:credentials *credentials*) *credentials*))
+                      ((:credentials *credentials*) *credentials*)
+                      ((:backoff *backoff*) *backoff*))
   "Copy the object identified by FROM-BUCKET/FROM-KEY to
 TO-BUCKET/TO-KEY.
 
@@ -631,8 +658,10 @@ users. Otherwise, a default ACL is present on the new object.
                                      (nconc headers policy-header))))))
 
 
-(defun object-metadata (bucket key &key
-                        ((:credentials *credentials*) *credentials*))
+(defun object-metadata (bucket key
+                        &key
+                          ((:credentials *credentials*) *credentials*)
+                          ((:backoff *backoff*) *backoff*))
   "Return the metadata headers as an alist, with keywords for the keys."
   (let* ((prefix "X-AMZ-META-")
          (plen (length prefix)))
@@ -650,8 +679,10 @@ users. Otherwise, a default ACL is present on the new object.
 
 ;;; Convenience bit for storage class
 
-(defun set-storage-class (bucket key storage-class &key
-                          ((:credentials *credentials*) *credentials*))
+(defun set-storage-class (bucket key storage-class
+                          &key
+                            ((:credentials *credentials*) *credentials*)
+                            ((:backoff *backoff*) *backoff*))
   "Set the storage class of the object identified by BUCKET and KEY to
 STORAGE-CLASS."
   (copy-object :from-bucket bucket :from-key key
@@ -668,7 +699,8 @@ STORAGE-CLASS."
   read access for all users.")
 
 (defun get-acl (&key bucket key
-                ((:credentials *credentials*) *credentials*))
+                  ((:credentials *credentials*) *credentials*)
+                  ((:backoff *backoff*) *backoff*))
   (let* ((request (make-instance 'request
                                  :method :get
                                  :bucket bucket
@@ -680,7 +712,8 @@ STORAGE-CLASS."
             (grants acl))))
 
 (defun put-acl (owner grants &key bucket key
-                ((:credentials *credentials*) *credentials*))
+                               ((:credentials *credentials*) *credentials*)
+                               ((:backoff *backoff*) *backoff*))
   (let* ((acl (make-instance 'access-control-list
                              :owner owner
                              :grants grants))
@@ -694,7 +727,8 @@ STORAGE-CLASS."
 
 
 (defun make-public (&key bucket key
-                    ((:credentials *credentials*) *credentials*))
+                      ((:credentials *credentials*) *credentials*)
+                      ((:backoff *backoff*) *backoff*))
   (multiple-value-bind (owner grants)
       (get-acl :bucket bucket :key key)
     (put-acl owner
@@ -703,7 +737,8 @@ STORAGE-CLASS."
              :key key)))
 
 (defun make-private (&key bucket key
-                     ((:credentials *credentials*) *credentials*))
+                       ((:credentials *credentials*) *credentials*)
+                       ((:backoff *backoff*) *backoff*))
   (multiple-value-bind (owner grants)
       (get-acl :bucket bucket :key key)
     (setf grants
@@ -725,7 +760,8 @@ STORAGE-CLASS."
 to write logfile objects into a particular bucket.")
 
 (defun enable-logging-to (bucket &key
-                          ((:credentials *credentials*) *credentials*))
+                                   ((:credentials *credentials*) *credentials*)
+                                   ((:backoff *backoff*) *backoff*))
   "Configure the ACL of BUCKET to accept logfile objects."
   (multiple-value-bind (owner grants)
       (get-acl :bucket bucket)
@@ -733,7 +769,8 @@ to write logfile objects into a particular bucket.")
     (put-acl owner grants :bucket bucket)))
 
 (defun disable-logging-to (bucket &key
-                           ((:credentials *credentials*) *credentials*))
+                                    ((:credentials *credentials*) *credentials*)
+                                    ((:backoff *backoff*) *backoff*))
   "Configure the ACL of BUCKET to remove permissions for the log
 delivery group."
   (multiple-value-bind (owner grants)
@@ -743,9 +780,11 @@ delivery group."
                             grants))
     (put-acl owner grants :bucket bucket)))
 
-(defun enable-logging (bucket target-bucket target-prefix &key
+(defun enable-logging (bucket target-bucket target-prefix
+                       &key
                        target-grants
-                       ((:credentials *credentials*) *credentials*))
+                         ((:credentials *credentials*) *credentials*)
+                         ((:backoff *backoff*) *backoff*))
   "Enable logging of requests to BUCKET, putting logfile objects into
 TARGET-BUCKET with a key prefix of TARGET-PREFIX."
   (let* ((setup (make-instance 'logging-setup
@@ -775,7 +814,8 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
   bucket effectively disables logging.")
 
 (defun disable-logging (bucket &key
-                        ((:credentials *credentials*) *credentials*))
+                                 ((:credentials *credentials*) *credentials*)
+                                 ((:backoff *backoff*) *backoff*))
   "Disable the creation of access logs for BUCKET."
   (submit-request (make-instance 'request
                                  :method :put
@@ -784,7 +824,8 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
                                  :content *empty-logging-setup*)))
 
 (defun logging-setup (bucket &key
-                      ((:credentials *credentials*) *credentials*))
+                               ((:credentials *credentials*) *credentials*)
+                               ((:backoff *backoff*) *backoff*))
   (let ((setup (setup
                 (submit-request (make-instance 'request
                                                :bucket bucket
@@ -888,7 +929,8 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
   key strings.")
 
 (defun me (&key
-           ((:credentials *credentials*) *credentials*))
+             ((:credentials *credentials*) *credentials*)
+             ((:backoff *backoff*) *backoff*))
   "Return a PERSON object corresponding to the current credentials. Cached."
   (or (gethash (access-key *credentials*) *me-cache*)
       (setf
@@ -897,7 +939,7 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
          (owner response)))))
 
 (defun make-post-policy (&key expires conditions
-                         ((:credentials *credentials*) *credentials*))
+                           ((:credentials *credentials*) *credentials*))
   "Return an encoded HTTP POST policy string and policy signature as
 multiple values."
   (unless expires
