@@ -90,6 +90,10 @@ constraint."
   (let* ((request (make-instance 'request
                                   :method :get
                                   :sub-resource "location"
+				  :extra-http-headers
+				  `(,(when (security-token *credentials*)
+				       (cons "x-amz-security-token"
+					     (security-token *credentials*))))
                                   :bucket bucket))
          (response (submit-request request))
          (location (location response)))
