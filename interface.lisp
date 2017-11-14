@@ -363,6 +363,7 @@ constraint."
                                        expires
                                        content-type
                                        (storage-class "STANDARD")
+				       tags
                                        ((:credentials *credentials*) *credentials*)
                                        ((:backoff *backoff*) *backoff*))
   (let ((content
@@ -384,7 +385,16 @@ constraint."
                                    :amz-headers
                                    (append policy-header
                                            (when security-token
-                                             (list (cons "security-token" security-token))))
+                                             (list (cons "security-token" security-token)))
+					   (when tags
+					     (list
+					      (cons "tagging"
+						    (format nil "~{~a=~a~^&~}"
+							    (mapcan #'(lambda (kv)
+									(list
+									 (drakma:url-encode (car kv) :iso-8859-1)
+									 (drakma:url-encode (cdr kv) :iso-8859-1)))
+								    tags))))))
                                    :extra-http-headers
                                    (parameters-alist
                                     :cache-control cache-control
@@ -408,6 +418,7 @@ constraint."
                    (content-type "binary/octet-stream")
                    expires
                    storage-class
+		   tags
                    ((:credentials *credentials*) *credentials*)
                    ((:backoff *backoff*) *backoff*))
   (when (or start end)
@@ -421,7 +432,8 @@ constraint."
               :content-disposition content-disposition
               :content-type content-type
               :expires expires
-              :storage-class storage-class))
+              :storage-class storage-class
+	      :tags tags))
 
 (defun put-string (string bucket key &key
                    start end
@@ -435,6 +447,7 @@ constraint."
                    (content-type "text/plain")
                    expires
                    storage-class
+		   tags
                    ((:credentials *credentials*) *credentials*)
                    ((:backoff *backoff*) *backoff*))
   (when (or start end)
@@ -449,7 +462,8 @@ constraint."
               :content-type content-type
               :cache-control cache-control
               :string-external-format external-format
-              :storage-class storage-class))
+              :storage-class storage-class
+	      :tags tags))
 
 
 (defun put-file (file bucket key &key
@@ -463,6 +477,7 @@ constraint."
                  (content-type "binary/octet-stream")
                  expires
                  storage-class
+		 tags
                  ((:credentials *credentials*) *credentials*)
                  ((:backoff *backoff*) *backoff*))
   (when (eq key t)
@@ -480,7 +495,8 @@ constraint."
                 :content-encoding content-encoding
                 :content-type content-type
                 :expires expires
-                :storage-class storage-class)))
+                :storage-class storage-class
+		:tags tags)))
 
 (defun put-stream (stream bucket key &key
                    (start 0) end
@@ -493,6 +509,7 @@ constraint."
                    (content-type "binary/octet-stream")
                    expires
                    storage-class
+		   tags
                    ((:credentials *credentials*) *credentials*)
                    ((:backoff *backoff*) *backoff*))
   (let ((content (stream-subset-vector stream start end)))
@@ -505,7 +522,8 @@ constraint."
                 :content-encoding content-encoding
                 :content-type content-type
                 :expires expires
-                :storage-class storage-class)))
+                :storage-class storage-class
+		:tags tags)))
 
 
 ;;; Delete & copy objects
