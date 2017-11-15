@@ -104,6 +104,10 @@
            #:enable-logging
            #:disable-logging
            #:logging-setup)
+  ;; Tagging
+  (:export #:get-tagging
+           #:put-tagging
+           #:delete-tagging)
   ;; Misc.
   (:export #:*use-ssl*
            #:*use-keep-alive*

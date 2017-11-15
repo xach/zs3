@@ -1401,6 +1401,7 @@ bucket with the given name.
       <var>content-type</var>
       <var>expires</var>
       <var>storage-class</var>
+      <var>tagging</var>
       <var>credentials</var>
       <var>backoff</var>
     </span>
@@ -1465,6 +1466,11 @@ bucket with the given name.
     from S3. For more information about reduced redundancy storage,
     see <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/Introduction.html#RRS">reduced
     Redundancy Storage</a> in the Developer Guide.
+
+    <p>If provided, <var>tagging</var> specifies the set of tags
+    to be associated with the object. The set is given as an alist.
+    For more information, see <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/object-tagging.html">
+    Object Tagging</a> in the Developer Guide.
 </div>
 
 <div class='item'>
@@ -1483,6 +1489,7 @@ bucket with the given name.
       <var>content-type</var>
       <var>expires</var>
       <var>storage-class</var>
+      <var>tagging</var>
       <var>credentials</var>
       <var>backoff</var>
     </span>
@@ -1520,6 +1527,7 @@ bucket with the given name.
       <var>content-type</var>
       <var>expires</var>
       <var>storage-class</var>
+      <var>tagging</var>
       <var>credentials</var>
       <var>backoff</var>
     </span>
@@ -1554,6 +1562,7 @@ calling:
       <var>content-disposition</var> <var>content-encoding</var> <var>content-type</var>
       <var>expires</var>
       <var>storage-class</var>
+      <var>tagging</var>
       <var>credentials</var>
       <var>backoff</var>
     </span>
@@ -1596,6 +1605,7 @@ calling:
       <var>content-disposition</var> <var>content-encoding</var> <var>content-type</var>
       <var>expires</var>
       <var>storage-class</var>
+      <var>tagging</var>
       <var>credentials</var>
       <var>backoff</var>
     </span>
@@ -1645,6 +1655,7 @@ calling:
       <var>unless-modified-since</var> <br>
       <var>metadata</var> <var>public</var> <var>precondition-errors</var>
       <var>storage-class</var>
+      <var>tagging</var>
       <var>credentials</var>
       <var>backoff</var>
     </span>
@@ -1676,6 +1687,12 @@ calling:
     with <a href='#put-object'><tt>PUT-OBJECT</tt></a>. Passing NIL
     means that the new object has no metadata. Otherwise, the metadata
     is copied from the original object.
+
+    <p>If <var>tagging</var> is explicitly provided, it follows the
+    same behavior as
+    with <a href='#put-object'><tt>PUT-OBJECT</tt></a>. Passing NIL
+    means that the new object has no tags. Otherwise, tagging is copied
+    from the original object.
 
     <p>If <var>storage-class</var> is provided, it should refer to one
     of the standard storage classes available for S3; currently the
@@ -2195,6 +2212,78 @@ calling:
   <blockquote class='description'>
     <p>If logging is enabled for <var>bucket</var>, returns the target
       bucket, target prefix, and target grants as multiple values.
+  </blockquote>
+</div>
+
+<a name='tagging'><h3>Object Tagging</h3></a>
+
+<p>In S3, a set of tags can be associated with each key and
+  bucket. Tagging offers a way to categorize objects that is
+  orthogonal to key prefixes. They resemble object metadata but,
+  unlike metadata, tagging be used in access control, lifecycle
+  rules, and metrics. For more information, please refer to
+  the <a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/object-tagging.html">Object
+  Tagging</a> section on the S3 Developer Guide.
+
+<div class='item'>
+  <div class='type'><a name='get-tagging'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>get-tagging</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>bucket</var>
+      <var>key</var>
+      <var>credentials</var>
+      <var>backoff</var>
+    </span>
+    <span class='result'>=> <var>tag-set</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Returns the object's current tag set as an
+    alist.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='put-tagging'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>put-tagging</code>
+    <span class='args'>
+      <var>tag-set</var>
+      <code class='llkw'>&amp;key</code>
+      <var>bucket</var>
+      <var>key</var>
+      <var>credentials</var>
+      <var>backoff</var>
+    </span>
+    <span class='result'>=> <var>response</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Sets the object's tagging resource to the given set of tags.
+    The tags are given as an alist.
+  </blockquote>
+</div>
+
+
+<div class='item'>
+  <div class='type'><a name='delete-tagging'>[Function]</a></div>
+  <div class='signature'>
+    <code class='name'>delete-tagging</code>
+    <span class='args'>
+      <code class='llkw'>&amp;key</code>
+      <var>bucket</var>
+      <var>key</var>
+      <var>credentials</var>
+      <var>backoff</var>
+    </span>
+    <span class='result'>=> <var>response</var></span>
+  </div>
+
+  <blockquote class='description'>
+    <p>Deletes the tagging resource associated with the object.
   </blockquote>
 </div>
 
