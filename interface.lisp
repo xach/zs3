@@ -867,7 +867,7 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
              (url-encode key :encode-slash nil)
              sub-resource))))
 
-(defun authorized-url (&key bucket key vhost expires ssl sub-resource
+(defun authorized-url (&key bucket key vhost expires ssl sub-resource content-disposition content-type
                          ((:credentials *credentials*) *credentials*))
   (unless (and expires (integerp expires) (plusp expires))
     (error "~S option must be a positive integer" :expires))
@@ -876,7 +876,12 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
          (endpoint (case vhost
                      (:cname bucket)
                      (:amazon (format nil "~A.~A" bucket region-endpoint))
+                     (:wasabi (format nil "~a.s3.wasabisys.com" bucket))
                      ((nil) region-endpoint)))
+         (extra-parameters (append (if content-disposition
+                                       (list (cons "response-content-disposition" content-disposition)))
+                                   (if content-type
+                                       (list (cons "response-content-type" content-type)))))
          (request (make-instance 'url-based-request
                                  :method :get
                                  :bucket bucket
@@ -884,7 +889,8 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
                                  :endpoint endpoint
                                  :sub-resource sub-resource
                                  :key key
-                                 :expires (unix-time expires))))
+                                 :expires (unix-time expires)
+                                 :parameters extra-parameters)))
     (setf (amz-headers request) nil)
     (setf (parameters request)
           (parameters-alist "X-Amz-Algorithm" "AWS4-HMAC-SHA256"
@@ -915,6 +921,13 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
                  (url-encode key :encode-slash nil)
                  sub-resource
                  parameters))
+        (:wasabi
+         (format nil "http~@[s~*~]://~A/~@[~A~]?~@[~A&~]~A"
+                 ssl
+                 endpoint
+                 (url-encode key :encode-slash nil)
+                 sub-resource
+                 parameters))
         ((nil)
          (format nil "http~@[s~*~]://~A/~@[~A/~]~@[~A~]?~@[~A&~]~A"
                  ssl
@@ -923,7 +936,6 @@ TARGET-BUCKET with a key prefix of TARGET-PREFIX."
                  (url-encode key :encode-slash nil)
                  sub-resource
                  parameters))))))
-
 
 ;;; Miscellaneous operations
 
