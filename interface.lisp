@@ -108,7 +108,7 @@ constraint."
 
 (defun region-endpoint (region)
   (if (string= region "us-east-1")
-      "s3.amazonaws.com"
+      (or *s3-endpoint* "s3.amazonaws.com")
       (format nil "s3-~A.amazonaws.com" region)))
 
 (defun query-bucket (bucket &key prefix marker max-keys delimiter
