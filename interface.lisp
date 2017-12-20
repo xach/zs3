@@ -90,10 +90,10 @@ constraint."
   (let* ((request (make-instance 'request
                                   :method :get
                                   :sub-resource "location"
-				  :extra-http-headers
-				  `(,(when (security-token *credentials*)
-				       (cons "x-amz-security-token"
-					     (security-token *credentials*))))
+                                  :extra-http-headers
+                                  `(,(when (security-token *credentials*)
+                                       (cons "x-amz-security-token"
+                                             (security-token *credentials*))))
                                   :bucket bucket))
          (response (submit-request request))
          (location (location response)))
@@ -351,6 +351,13 @@ constraint."
 
 ;;; Putting objects
 
+(defun format-tagging-header (tagging)
+  (format nil "~{~a=~a~^&~}"
+          (mapcan #'(lambda (kv)
+                      (list
+                       (drakma:url-encode (car kv) :iso-8859-1)
+                       (drakma:url-encode (cdr kv) :iso-8859-1)))
+                  tagging)))
 
 (defun put-object (object bucket key &key
                                        access-policy
@@ -363,6 +370,7 @@ constraint."
                                        expires
                                        content-type
                                        (storage-class "STANDARD")
+                                       tagging
                                        ((:credentials *credentials*) *credentials*)
                                        ((:backoff *backoff*) *backoff*))
   (let ((content
@@ -384,7 +392,10 @@ constraint."
                                    :amz-headers
                                    (append policy-header
                                            (when security-token
-                                             (list (cons "security-token" security-token))))
+                                             (list (cons "security-token" security-token)))
+                                           (when tagging
+                                             (list
+                                              (cons "tagging" (format-tagging-header tagging)))))
                                    :extra-http-headers
                                    (parameters-alist
                                     :cache-control cache-control
@@ -408,6 +419,7 @@ constraint."
                    (content-type "binary/octet-stream")
                    expires
                    storage-class
+                   tagging
                    ((:credentials *credentials*) *credentials*)
                    ((:backoff *backoff*) *backoff*))
   (when (or start end)
@@ -421,7 +433,8 @@ constraint."
               :content-disposition content-disposition
               :content-type content-type
               :expires expires
-              :storage-class storage-class))
+              :storage-class storage-class
+              :tagging tagging))
 
 (defun put-string (string bucket key &key
                    start end
@@ -435,6 +448,7 @@ constraint."
                    (content-type "text/plain")
                    expires
                    storage-class
+                   tagging
                    ((:credentials *credentials*) *credentials*)
                    ((:backoff *backoff*) *backoff*))
   (when (or start end)
@@ -449,7 +463,8 @@ constraint."
               :content-type content-type
               :cache-control cache-control
               :string-external-format external-format
-              :storage-class storage-class))
+              :storage-class storage-class
+              :tagging tagging))
 
 
 (defun put-file (file bucket key &key
@@ -463,6 +478,7 @@ constraint."
                  (content-type "binary/octet-stream")
                  expires
                  storage-class
+                 tagging
                  ((:credentials *credentials*) *credentials*)
                  ((:backoff *backoff*) *backoff*))
   (when (eq key t)
@@ -480,7 +496,8 @@ constraint."
                 :content-encoding content-encoding
                 :content-type content-type
                 :expires expires
-                :storage-class storage-class)))
+                :storage-class storage-class
+                :tagging tagging)))
 
 (defun put-stream (stream bucket key &key
                    (start 0) end
@@ -493,6 +510,7 @@ constraint."
                    (content-type "binary/octet-stream")
                    expires
                    storage-class
+                   tagging
                    ((:credentials *credentials*) *credentials*)
                    ((:backoff *backoff*) *backoff*))
   (let ((content (stream-subset-vector stream start end)))
@@ -505,7 +523,8 @@ constraint."
                 :content-encoding content-encoding
                 :content-type content-type
                 :expires expires
-                :storage-class storage-class)))
+                :storage-class storage-class
+                :tagging tagging)))
 
 
 ;;; Delete & copy objects
@@ -604,6 +623,7 @@ constraint."
                     public
                     precondition-errors
                     (storage-class "STANDARD")
+                    (tagging nil tagging-supplied-p)
                       ((:credentials *credentials*) *credentials*)
                       ((:backoff *backoff*) *backoff*))
   "Copy the object identified by FROM-BUCKET/FROM-KEY to
@@ -615,6 +635,10 @@ uses TO-KEY as the target.
 If METADATA is provided, it should be an alist of metadata keys and
 values to set on the new object. Otherwise, the source object's
 metadata is copied.
+
+If TAGGING is provided, it should be an alist of tag keys and values
+to be set on the new object's tagging resource. Otherwise, the source
+object's tagging is copied.
 
 Optional precondition variables are WHEN-ETAG-MATCHES,
 UNLESS-ETAG-MATCHES, WHEN-MODIFIED-SINCE, UNLESS-MODIFIED-SINCE. The
@@ -644,6 +668,8 @@ users. Otherwise, a default ACL is present on the new object.
                              :storage-class storage-class
                              :metadata-directive
                              (if metadata-supplied-p "REPLACE" "COPY")
+                             :tagging-directive
+                             (if tagging-supplied-p "REPLACE" "COPY")
                              :copy-source-if-match when-etag-matches
                              :copy-source-if-none-match unless-etag-matches
                              :copy-source-if-modified-since
@@ -652,14 +678,18 @@ users. Otherwise, a default ACL is present on the new object.
                              :copy-source-if-unmodified-since
                              (and unless-modified-since
                                   (http-date-string unless-modified-since))))
-          (policy-header (access-policy-header access-policy public)))
+          (policy-header (access-policy-header access-policy public))
+          (tagging-header (when tagging-supplied-p
+                            (list (cons "tagging" (format-tagging-header tagging))))))
       (submit-request (make-instance 'request
                                      :method :put
                                      :bucket to-bucket
                                      :key to-key
                                      :metadata metadata
                                      :amz-headers
-                                     (nconc headers policy-header))))))
+                                     (nconc headers
+                                            policy-header
+                                            tagging-header))))))
 
 
 (defun object-metadata (bucket key
@@ -965,3 +995,59 @@ multiple values."
                                :conditions conditions)))
     (values (policy-string64 policy)
             (policy-signature (secret-key *credentials*) policy))))
+
+;;; Tagging
+
+(defbinder get-tagging-result
+  ("Tagging"
+   ("TagSet"
+    (sequence :tag-set
+              ("Tag"
+               ("Key" (bind :key))
+               ("Value" (bind :value)))))))
+
+(defun get-tagging (&key bucket key
+                      ((:credentials *credentials*) *credentials*)
+                      ((:backoff *backoff*) *backoff*))
+  "Returns the current contents of the object's tagging resource as an alist."
+  (let* ((request (make-instance 'request
+                                 :method :get
+                                 :bucket bucket
+                                 :key key
+                                 :sub-resource "tagging"))
+         (response (submit-request request))
+         (tagging (xml-bind 'get-tagging-result (body response))))
+    (mapcar #'(lambda (tag)
+                (cons (bvalue :key tag)
+                      (bvalue :value tag)))
+            (bvalue :tag-set tagging))))
+
+(defun put-tagging (tag-set &key bucket key
+                              ((:credentials *credentials*) *credentials*)
+                              ((:backoff *backoff*) *backoff*))
+  "Sets the tag set, given as an alist, to the object's tagging resource."
+  (let* ((content (with-xml-output
+                    (with-element "Tagging"
+                      (with-element "TagSet"
+                        (dolist (tag tag-set)
+                          (with-element "Tag"
+                            (with-element "Key" (cxml:text (car tag)))
+                            (with-element "Value" (cxml:text (cdr tag)))))))))
+         (request (make-instance 'request
+                                 :method :put
+                                 :bucket bucket
+                                 :key key
+                                 :sub-resource "tagging"
+                                 :content content)))
+    (submit-request request)))
+
+(defun delete-tagging (&key bucket key
+                         ((:credentials *credentials*) *credentials*)
+                         ((:backoff *backoff*) *backoff*))
+  "Deletes the object's tagging resource."
+  (let* ((request (make-instance 'request
+                                 :method :delete
+                                 :bucket bucket
+                                 :key key
+                                 :sub-resource "tagging")))
+    (submit-request request)))
