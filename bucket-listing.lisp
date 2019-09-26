@@ -87,7 +87,7 @@
               (optional
                ("Owner"
                 ("ID" (bind :owner-id))
-                ("DisplayName" (bind :owner-display-name))))
+                (optional ("DisplayName" (bind :owner-display-name)))))
               ("StorageClass" (bind :storage-class))))
    (sequence :common-prefixes
              ("CommonPrefixes"
