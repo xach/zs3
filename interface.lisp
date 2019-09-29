@@ -391,6 +391,7 @@ constraint."
                                    :metadata metadata
                                    :amz-headers
                                    (append policy-header
+					   (list (cons "storage-class" storage-class))
                                            (when security-token
                                              (list (cons "security-token" security-token)))
                                            (when tagging
