@@ -1424,6 +1424,9 @@ bucket with the given name.
     <p>If <i>object</i> is a pathname, its contents are loaded in
     memory as an octet vector and stored.
 
+    <p>If <i>object</i> is a stream, everything that can be read
+    from the stream until EOF will be stored.
+
     <p>If provided, <var>access-policy</var> should be one of the
     following:
 

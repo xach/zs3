@@ -379,7 +379,7 @@ constraint."
             (flexi-streams:string-to-octets object
                                             :external-format
                                             string-external-format))
-           ((or vector pathname) object)))
+           ((or vector pathname stream) object)))
         (content-length t)
         (policy-header (access-policy-header access-policy public))
         (security-token (security-token *credentials*)))
