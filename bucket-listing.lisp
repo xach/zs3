@@ -83,6 +83,10 @@
               ("Key" (bind :key))
               ("LastModified" (bind :last-modified))
               ("ETag" (bind :etag))
+	      (optional
+	       ("ChecksumAlgorithm"))
+	      (optional
+	       ("ChecksumType"))
               ("Size" (bind :size))
               (optional
                ("Owner"
