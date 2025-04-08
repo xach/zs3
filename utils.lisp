@@ -182,7 +182,12 @@ character."
     (symbol (symbol-name thing))
     (t (princ-to-string thing))))
 
-(defun parameters-alist (&rest args &key &allow-other-keys)
+(define-compiler-macro parameters-alist (&whole form &rest args)
+  (unless (evenp (length args))
+    (warn "In ~S: need an even number of arguments" form))
+  form)
+
+(defun parameters-alist (&rest args)
   "Construct an ALIST based on all keyword arguments passed to the
 function. Keywords are converted to their lowercase symbol name and
 values are converted to strings."
